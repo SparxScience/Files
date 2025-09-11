@@ -1,0 +1,810 @@
+
+
+<!DOCTYPE html>
+
+<html dir="ltr" lang="en">
+
+<head>
+<meta charset="utf-8">
+<meta name="color-scheme" content="light dark">
+<meta name="google" value="notranslate">
+
+<script>
+function addRow(name, url, isdir,
+    size, size_string, date_modified, date_modified_string) {
+  if (name == "." || name == "..")
+    return;
+
+  var root = document.location.pathname.replace(/[^\/]+\.html$/, '');
+
+  var tbody = document.getElementById("tbody");
+  var row = document.createElement("tr");
+  var file_cell = document.createElement("td");
+  var link = document.createElement("a");
+
+  link.className = isdir ? "icon dir" : "icon file";
+
+  if (isdir) {
+    name = name + "/";
+    url = url + "/";
+    size = 0;
+    size_string = "";
+  } else {
+    link.draggable = "true";
+    link.addEventListener("dragstart", onDragStart, false);
+  }
+  link.innerText = name;
+  link.href = root + url;
+
+  file_cell.dataset.value = name;
+  file_cell.appendChild(link);
+
+  row.appendChild(file_cell);
+  row.appendChild(createCell(size, size_string));
+  row.appendChild(createCell(date_modified, date_modified_string));
+
+  tbody.appendChild(row);
+}
+
+function onDragStart(e) {
+  var el = e.srcElement;
+  var name = el.innerText.replace(":", "");
+  var download_url_data = "application/octet-stream:" + name + ":" + el.href;
+  e.dataTransfer.setData("DownloadURL", download_url_data);
+  e.dataTransfer.effectAllowed = "copy";
+}
+
+function createCell(value, text) {
+  var cell = document.createElement("td");
+  cell.setAttribute("class", "detailsColumn");
+  cell.dataset.value = value;
+  cell.innerText = text;
+  return cell;
+}
+
+function start(location) {
+  var header = document.getElementById("header");
+  header.innerText = header.innerText.replace("LOCATION", location);
+
+  document.getElementById("title").innerText = header.innerText;
+}
+
+function onHasParentDirectory() {
+  var box = document.getElementById("parentDirLinkBox");
+  box.style.display = "block";
+
+  var root = document.location.pathname;
+  if (!root.endsWith("/"))
+    root += "/";
+
+  var link = document.getElementById("parentDirLink");
+  link.href = root + "..";
+}
+
+function sortTable(column) {
+  var theader = document.getElementById("theader");
+  var oldOrder = theader.cells[column].dataset.order || '1';
+  oldOrder = parseInt(oldOrder, 10)
+  var newOrder = 0 - oldOrder;
+  theader.cells[column].dataset.order = newOrder;
+
+  var tbody = document.getElementById("tbody");
+  var rows = tbody.rows;
+  var list = [], i;
+  for (i = 0; i < rows.length; i++) {
+    list.push(rows[i]);
+  }
+
+  list.sort(function(row1, row2) {
+    var a = row1.cells[column].dataset.value;
+    var b = row2.cells[column].dataset.value;
+    if (column) {
+      a = parseInt(a, 10);
+      b = parseInt(b, 10);
+      return a > b ? newOrder : a < b ? oldOrder : 0;
+    }
+
+    // Column 0 is text.
+    if (a > b)
+      return newOrder;
+    if (a < b)
+      return oldOrder;
+    return 0;
+  });
+
+  // Appending an existing child again just moves it.
+  for (i = 0; i < list.length; i++) {
+    tbody.appendChild(list[i]);
+  }
+}
+
+// Add event handlers to column headers.
+function addHandlers(element, column) {
+  element.onclick = (e) => sortTable(column);
+  element.onkeydown = (e) => {
+    if (e.key == 'Enter' || e.key == ' ') {
+      sortTable(column);
+      e.preventDefault();
+    }
+  };
+}
+
+function onLoad() {
+  addHandlers(document.getElementById('nameColumnHeader'), 0);
+  addHandlers(document.getElementById('sizeColumnHeader'), 1);
+  addHandlers(document.getElementById('dateColumnHeader'), 2);
+}
+
+window.addEventListener('DOMContentLoaded', onLoad);
+</script>
+
+<style>
+
+  h1 {
+    border-bottom: 1px solid #c0c0c0;
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+    white-space: nowrap;
+  }
+
+  table {
+    border-collapse: collapse;
+  }
+
+  th {
+    cursor: pointer;
+  }
+
+  td.detailsColumn {
+    padding-inline-start: 2em;
+    text-align: end;
+    white-space: nowrap;
+  }
+
+  a.icon {
+    padding-inline-start: 1.5em;
+    text-decoration: none;
+    user-select: auto;
+  }
+
+  a.icon:hover {
+    text-decoration: underline;
+  }
+
+  a.file {
+    background : url("file.png") left top no-repeat;
+  }
+
+  a.dir {
+    background : url("folder.png") left top no-repeat;
+  }
+
+  a.up {
+    background : url("up.png") left top no-repeat;
+  }
+
+  html[dir=rtl] a {
+    background-position-x: right;
+  }
+
+  #parentDirLinkBox {
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+  }
+</style>
+
+<title id="title"></title>
+
+</head>
+
+<body>
+
+<h1 id="header">Index of LOCATION</h1>
+
+
+<table>
+  <thead>
+    <tr class="header" id="theader">
+      <th id="nameColumnHeader" tabindex=0 role="button">Name</th>
+      <th id="sizeColumnHeader" class="detailsColumn" tabindex=0 role="button">
+        Size
+      </th>
+      <th id="dateColumnHeader" class="detailsColumn" tabindex=0 role="button">
+        Date modified
+      </th>
+    </tr>
+  </thead>
+  <tbody id="tbody">
+  </tbody>
+</table>
+
+</body>
+
+</html>
+
+<script>
+function customRow(name, url, isdir, size, size_string, date_modified, date_modified_string) {
+  // Skip invalid entries
+  if (name == "." || name == "..") return;
+
+  // If it's a folder (isdir == 1), build a path to the GB file inside it
+  if (isdir === 1 || isdir === "1") {
+    const nestedUrl = `${url}/${name}.gb`; // Build GB file path
+    addRow(name, nestedUrl, 0, size, size_string, date_modified, date_modified_string);
+  } else {
+    // Already a file, just use as-is
+    addRow(name, url, 0, size, size_string, date_modified, date_modified_string);
+  }
+}
+</script>
+
+
+<script>// Copyright 2012 The Chromium Authors
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+"use strict";var loadTimeData;class LoadTimeData{constructor(){this.data_=null}set data(value){expect(!this.data_,"Re-setting data.");this.data_=value}valueExists(id){return id in this.data_}getValue(id){expect(this.data_,"No data. Did you remember to include strings.js?");const value=this.data_[id];expect(typeof value!=="undefined","Could not find value for "+id);return value}getString(id){const value=this.getValue(id);expectIsType(id,value,"string");return value}getStringF(id,var_args){const value=this.getString(id);if(!value){return""}const args=Array.prototype.slice.call(arguments);args[0]=value;return this.substituteString.apply(this,args)}substituteString(label,var_args){const varArgs=arguments;return label.replace(/\$(.|$|\n)/g,(function(m){expect(m.match(/\$[$1-9]/),"Unescaped $ found in localized string.");return m==="$$"?"$":varArgs[m[1]]}))}getBoolean(id){const value=this.getValue(id);expectIsType(id,value,"boolean");return value}getInteger(id){const value=this.getValue(id);expectIsType(id,value,"number");expect(value===Math.floor(value),"Number isn't integer: "+value);return value}overrideValues(replacements){expect(typeof replacements==="object","Replacements must be a dictionary object.");for(const key in replacements){this.data_[key]=replacements[key]}}}function expect(condition,message){if(!condition){throw new Error("Unexpected condition on "+document.location.href+": "+message)}}function expectIsType(id,value,type){expect(typeof value===type,"["+value+"] ("+id+") is not a "+type)}expect(!loadTimeData,"should only include this file once");loadTimeData=new LoadTimeData;window.loadTimeData=loadTimeData;console.warn("crbug/1173575, non-JS module files deprecated.");</script><script>loadTimeData.data = {"header":"Index of LOCATION","headerDateModified":"Date modified","headerName":"Name","headerSize":"Size","language":"en","parentDirText":"[parent directory]","textdirection":"ltr"};</script><script>start("\\ROMS\\GB\\");</script>
+<script>onHasParentDirectory();</script>
+<script>customRow("A-mazing Tater (USA)","A-mazing%20Tater%20(USA)",1,0,"0 B",1749278103,"07/06/2025, 07:35:03");</script>
+<script>customRow("Addams Family, The - Pugsley's Scavenger Hunt (USA, Europe)","Addams%20Family,%20The%20-%20Pugsley's%20Scavenger%20Hunt%20(USA,%20Europe)",1,0,"0 B",1749278103,"07/06/2025, 07:35:03");</script>
+<script>customRow("Addams Family, The (USA)","Addams%20Family,%20The%20(USA)",1,0,"0 B",1749278103,"07/06/2025, 07:35:03");</script>
+<script>customRow("Adventure Island (USA, Europe)","Adventure%20Island%20(USA,%20Europe)",1,0,"0 B",1749278103,"07/06/2025, 07:35:03");</script>
+<script>customRow("Adventure Island II - Aliens in Paradise (USA, Europe)","Adventure%20Island%20II%20-%20Aliens%20in%20Paradise%20(USA,%20Europe)",1,0,"0 B",1749278103,"07/06/2025, 07:35:03");</script>
+<script>customRow("Adventures of Lolo (Europe)","Adventures%20of%20Lolo%20(Europe)",1,0,"0 B",1749278103,"07/06/2025, 07:35:03");</script>
+<script>customRow("Adventures of Rocky and Bullwinkle and Friends, The (USA)","Adventures%20of%20Rocky%20and%20Bullwinkle%20and%20Friends,%20The%20(USA)",1,0,"0 B",1749278103,"07/06/2025, 07:35:03");</script>
+<script>customRow("Adventures of Star Saver, The (USA, Europe)","Adventures%20of%20Star%20Saver,%20The%20(USA,%20Europe)",1,0,"0 B",1749278103,"07/06/2025, 07:35:03");</script>
+<script>customRow("Aerostar (USA, Europe)","Aerostar%20(USA,%20Europe)",1,0,"0 B",1749278103,"07/06/2025, 07:35:03");</script>
+<script>customRow("After Burst (J)","After%20Burst%20(J)",1,0,"0 B",1749278103,"07/06/2025, 07:35:03");</script>
+<script>customRow("Aladdin (USA)","Aladdin%20(USA)",1,0,"0 B",1749278103,"07/06/2025, 07:35:03");</script>
+<script>customRow("Alfred Chicken (USA)","Alfred%20Chicken%20(USA)",1,0,"0 B",1749278103,"07/06/2025, 07:35:03");</script>
+<script>customRow("Alien 3 (USA, Europe)","Alien%203%20(USA,%20Europe)",1,0,"0 B",1749278103,"07/06/2025, 07:35:03");</script>
+<script>customRow("Alien Olympics (Europe)","Alien%20Olympics%20(Europe)",1,0,"0 B",1749278103,"07/06/2025, 07:35:03");</script>
+<script>customRow("Alien vs Predator - The Last of His Clan (USA)","Alien%20vs%20Predator%20-%20The%20Last%20of%20His%20Clan%20(USA)",1,0,"0 B",1749278103,"07/06/2025, 07:35:03");</script>
+<script>customRow("Alleyway (World)","Alleyway%20(World)",1,0,"0 B",1749278103,"07/06/2025, 07:35:03");</script>
+<script>customRow("Altered Space - A 3-D Alien Adventure (USA)","Altered%20Space%20-%20A%203-D%20Alien%20Adventure%20(USA)",1,0,"0 B",1749278103,"07/06/2025, 07:35:03");</script>
+<script>customRow("Amazing Penguin (USA, Europe)","Amazing%20Penguin%20(USA,%20Europe)",1,0,"0 B",1749278103,"07/06/2025, 07:35:03");</script>
+<script>customRow("Amazing Spider-Man, The (USA, Europe)","Amazing%20Spider-Man,%20The%20(USA,%20Europe)",1,0,"0 B",1749278103,"07/06/2025, 07:35:03");</script>
+<script>customRow("Animaniacs (USA)","Animaniacs%20(USA)",1,0,"0 B",1749278103,"07/06/2025, 07:35:03");</script>
+<script>customRow("Arcade Classic No. 1 - Asteroids & Missile Command (USA, Europe)","Arcade%20Classic%20No.%201%20-%20Asteroids%20&%20Missile%20Command%20(USA,%20Europe)",1,0,"0 B",1749278103,"07/06/2025, 07:35:03");</script>
+<script>customRow("Arcade Classic No. 2 - Centipede & Millipede (USA, Europe)","Arcade%20Classic%20No.%202%20-%20Centipede%20&%20Millipede%20(USA,%20Europe)",1,0,"0 B",1749278103,"07/06/2025, 07:35:03");</script>
+<script>customRow("Arcade Classic No. 3 - Galaga & Galaxian (USA)","Arcade%20Classic%20No.%203%20-%20Galaga%20&%20Galaxian%20(USA)",1,0,"0 B",1749278103,"07/06/2025, 07:35:03");</script>
+<script>customRow("Arcade Classic No. 4 - Defender & Joust (USA, Europe)","Arcade%20Classic%20No.%204%20-%20Defender%20&%20Joust%20(USA,%20Europe)",1,0,"0 B",1749278103,"07/06/2025, 07:35:03");</script>
+<script>customRow("Arcade Classics - Battlezone & Super Breakout (USA, Europe)","Arcade%20Classics%20-%20Battlezone%20&%20Super%20Breakout%20(USA,%20Europe)",1,0,"0 B",1749278103,"07/06/2025, 07:35:03");</script>
+<script>customRow("Asterix (Europe)","Asterix%20(Europe)",1,0,"0 B",1749278103,"07/06/2025, 07:35:03");</script>
+<script>customRow("Asterix & Obelix (Europe)","Asterix%20&%20Obelix%20(Europe)",1,0,"0 B",1749278103,"07/06/2025, 07:35:03");</script>
+<script>customRow("Asteroids (USA, Europe)","Asteroids%20(USA,%20Europe)",1,0,"0 B",1749278103,"07/06/2025, 07:35:03");</script>
+<script>customRow("Atomic Punk (USA)","Atomic%20Punk%20(USA)",1,0,"0 B",1749278103,"07/06/2025, 07:35:03");</script>
+<script>customRow("Attack of the Killer Tomatoes (USA, Europe)","Attack%20of%20the%20Killer%20Tomatoes%20(USA,%20Europe)",1,0,"0 B",1749278103,"07/06/2025, 07:35:03");</script>
+<script>customRow("Avenging Spirit (USA, Europe)","Avenging%20Spirit%20(USA,%20Europe)",1,0,"0 B",1749278103,"07/06/2025, 07:35:03");</script>
+<script>customRow("Balloon Kid (USA, Europe)","Balloon%20Kid%20(USA,%20Europe)",1,0,"0 B",1749278104,"07/06/2025, 07:35:04");</script>
+<script>customRow("Banishing Racer (J)","Banishing%20Racer%20(J)",1,0,"0 B",1749278104,"07/06/2025, 07:35:04");</script>
+<script>customRow("Barbie - Game Girl (USA, Europe)","Barbie%20-%20Game%20Girl%20(USA,%20Europe)",1,0,"0 B",1749278104,"07/06/2025, 07:35:04");</script>
+<script>customRow("Bart Simpson's Escape from Camp Deadly (USA, Europe)","Bart%20Simpson's%20Escape%20from%20Camp%20Deadly%20(USA,%20Europe)",1,0,"0 B",1749278104,"07/06/2025, 07:35:04");</script>
+<script>customRow("Bases Loaded (USA)","Bases%20Loaded%20(USA)",1,0,"0 B",1749278104,"07/06/2025, 07:35:04");</script>
+<script>customRow("Batman - Return of the Joker (USA, Europe)","Batman%20-%20Return%20of%20the%20Joker%20(USA,%20Europe)",1,0,"0 B",1749278104,"07/06/2025, 07:35:04");</script>
+<script>customRow("Batman - The Animated Series (USA, Europe)","Batman%20-%20The%20Animated%20Series%20(USA,%20Europe)",1,0,"0 B",1749278104,"07/06/2025, 07:35:04");</script>
+<script>customRow("Batman - The Video Game (World)","Batman%20-%20The%20Video%20Game%20(World)",1,0,"0 B",1749278104,"07/06/2025, 07:35:04");</script>
+<script>customRow("Batman Forever (USA, Europe)","Batman%20Forever%20(USA,%20Europe)",1,0,"0 B",1749278104,"07/06/2025, 07:35:04");</script>
+<script>customRow("Battle Arena Toshinden (USA)","Battle%20Arena%20Toshinden%20(USA)",1,0,"0 B",1749278104,"07/06/2025, 07:35:04");</script>
+<script>customRow("Battle Bull (USA)","Battle%20Bull%20(USA)",1,0,"0 B",1749278104,"07/06/2025, 07:35:04");</script>
+<script>customRow("Battle Crusher (J) (S)","Battle%20Crusher%20(J)%20(S)",1,0,"0 B",1749278104,"07/06/2025, 07:35:04");</script>
+<script>customRow("Battle of Olympus, The (Europe)","Battle%20of%20Olympus,%20The%20(Europe)",1,0,"0 B",1749278104,"07/06/2025, 07:35:04");</script>
+<script>customRow("Battle Unit Zeoth (USA, Europe)","Battle%20Unit%20Zeoth%20(USA,%20Europe)",1,0,"0 B",1749278104,"07/06/2025, 07:35:04");</script>
+<script>customRow("BattleCity (J)","BattleCity%20(J)",1,0,"0 B",1749278104,"07/06/2025, 07:35:04");</script>
+<script>customRow("Battleship (USA, Europe)","Battleship%20(USA,%20Europe)",1,0,"0 B",1749278104,"07/06/2025, 07:35:04");</script>
+<script>customRow("Battletoads (USA, Europe)","Battletoads%20(USA,%20Europe)",1,0,"0 B",1749278104,"07/06/2025, 07:35:04");</script>
+<script>customRow("Battletoads in Ragnarok's World (USA)","Battletoads%20in%20Ragnarok's%20World%20(USA)",1,0,"0 B",1749278104,"07/06/2025, 07:35:04");</script>
+<script>customRow("Battletoads-Double Dragon (USA)","Battletoads-Double%20Dragon%20(USA)",1,0,"0 B",1749278104,"07/06/2025, 07:35:04");</script>
+<script>customRow("Beavis and Butt-Head (USA, Europe)","Beavis%20and%20Butt-Head%20(USA,%20Europe)",1,0,"0 B",1749278104,"07/06/2025, 07:35:04");</script>
+<script>customRow("Beethoven - The Ultimate Canine Caper (Europe)","Beethoven%20-%20The%20Ultimate%20Canine%20Caper%20(Europe)",1,0,"0 B",1749278104,"07/06/2025, 07:35:04");</script>
+<script>customRow("Beetlejuice (USA)","Beetlejuice%20(USA)",1,0,"0 B",1749278104,"07/06/2025, 07:35:04");</script>
+<script>customRow("Best of the Best - Championship Karate (USA)","Best%20of%20the%20Best%20-%20Championship%20Karate%20(USA)",1,0,"0 B",1749278104,"07/06/2025, 07:35:04");</script>
+<script>customRow("Bill & Ted's Excellent Game Boy Adventure (USA, Europe)","Bill%20&%20Ted's%20Excellent%20Game%20Boy%20Adventure%20(USA,%20Europe)",1,0,"0 B",1749278104,"07/06/2025, 07:35:04");</script>
+<script>customRow("Bill Elliott's NASCAR Fast Tracks (USA)","Bill%20Elliott's%20NASCAR%20Fast%20Tracks%20(USA)",1,0,"0 B",1749278104,"07/06/2025, 07:35:04");</script>
+<script>customRow("Bionic Battler (USA)","Bionic%20Battler%20(USA)",1,0,"0 B",1749278104,"07/06/2025, 07:35:04");</script>
+<script>customRow("Bionic Commando (USA)","Bionic%20Commando%20(USA)",1,0,"0 B",1749278104,"07/06/2025, 07:35:04");</script>
+<script>customRow("Black Bass - Lure Fishing (USA)","Black%20Bass%20-%20Lure%20Fishing%20(USA)",1,0,"0 B",1749278104,"07/06/2025, 07:35:04");</script>
+<script>customRow("Blades of Steel (USA)","Blades%20of%20Steel%20(USA)",1,0,"0 B",1749278104,"07/06/2025, 07:35:04");</script>
+<script>customRow("Blaster Master Boy (USA)","Blaster%20Master%20Boy%20(USA)",1,0,"0 B",1749278104,"07/06/2025, 07:35:04");</script>
+<script>customRow("Blues Brothers, The - Jukebox Adventure (Europe)","Blues%20Brothers,%20The%20-%20Jukebox%20Adventure%20(Europe)",1,0,"0 B",1749278104,"07/06/2025, 07:35:04");</script>
+<script>customRow("Blues Brothers, The (USA, Europe)","Blues%20Brothers,%20The%20(USA,%20Europe)",1,0,"0 B",1749278104,"07/06/2025, 07:35:04");</script>
+<script>customRow("Bo Jackson - Two Games in One (USA)","Bo%20Jackson%20-%20Two%20Games%20in%20One%20(USA)",1,0,"0 B",1749278104,"07/06/2025, 07:35:04");</script>
+<script>customRow("Boggle Plus (USA)","Boggle%20Plus%20(USA)",1,0,"0 B",1754381268,"05/08/2025, 09:07:48");</script>
+<script>customRow("Bomb Jack (Europe)","Bomb%20Jack%20(Europe)",1,0,"0 B",1749278104,"07/06/2025, 07:35:04");</script>
+<script>customRow("Bomberman GB (USA, Europe)","Bomberman%20GB%20(USA,%20Europe)",1,0,"0 B",1749278104,"07/06/2025, 07:35:04");</script>
+<script>customRow("Bomberman GB 3 (Japan) (Translated En)","Bomberman%20GB%203%20(Japan)%20(Translated%20En)",1,0,"0 B",1749278104,"07/06/2025, 07:35:04");</script>
+<script>customRow("Bonk's Adventure (USA)","Bonk's%20Adventure%20(USA)",1,0,"0 B",1749278104,"07/06/2025, 07:35:04");</script>
+<script>customRow("Bonk's Revenge (USA)","Bonk's%20Revenge%20(USA)",1,0,"0 B",1749278104,"07/06/2025, 07:35:04");</script>
+<script>customRow("Boomer's Adventure in ASMIK World (USA)","Boomer's%20Adventure%20in%20ASMIK%20World%20(USA)",1,0,"0 B",1749278104,"07/06/2025, 07:35:04");</script>
+<script>customRow("Boulder Dash (Europe)","Boulder%20Dash%20(Europe)",1,0,"0 B",1749278104,"07/06/2025, 07:35:04");</script>
+<script>customRow("Boxxle (USA, Europe) (Rev A)","Boxxle%20(USA,%20Europe)%20(Rev%20A)",1,0,"0 B",1749278104,"07/06/2025, 07:35:04");</script>
+<script>customRow("Boxxle II (USA)","Boxxle%20II%20(USA)",1,0,"0 B",1749278104,"07/06/2025, 07:35:04");</script>
+<script>customRow("Brain Bender (USA)","Brain%20Bender%20(USA)",1,0,"0 B",1749278104,"07/06/2025, 07:35:04");</script>
+<script>customRow("Brain Drain (USA)","Brain%20Drain%20(USA)",1,0,"0 B",1749278104,"07/06/2025, 07:35:04");</script>
+<script>customRow("Bram Stoker's Dracula (USA, Europe)","Bram%20Stoker's%20Dracula%20(USA,%20Europe)",1,0,"0 B",1749278104,"07/06/2025, 07:35:04");</script>
+<script>customRow("BreakThru! (USA)","BreakThru!%20(USA)",1,0,"0 B",1749278104,"07/06/2025, 07:35:04");</script>
+<script>customRow("Bubble Bobble (USA, Europe)","Bubble%20Bobble%20(USA,%20Europe)",1,0,"0 B",1749278104,"07/06/2025, 07:35:04");</script>
+<script>customRow("Bubble Bobble Part 2 (USA, Europe)","Bubble%20Bobble%20Part%202%20(USA,%20Europe)",1,0,"0 B",1749278104,"07/06/2025, 07:35:04");</script>
+<script>customRow("Bubble Ghost (USA, Europe)","Bubble%20Ghost%20(USA,%20Europe)",1,0,"0 B",1749278104,"07/06/2025, 07:35:04");</script>
+<script>customRow("Bubsy II (USA)","Bubsy%20II%20(USA)",1,0,"0 B",1749278104,"07/06/2025, 07:35:04");</script>
+<script>customRow("Bugs Bunny Crazy Castle 2, The (USA)","Bugs%20Bunny%20Crazy%20Castle%202,%20The%20(USA)",1,0,"0 B",1749278104,"07/06/2025, 07:35:04");</script>
+<script>customRow("Bugs Bunny Crazy Castle, The (USA, Europe)","Bugs%20Bunny%20Crazy%20Castle,%20The%20(USA,%20Europe)",1,0,"0 B",1749278104,"07/06/2025, 07:35:04");</script>
+<script>customRow("Burai Fighter Deluxe (USA, Europe)","Burai%20Fighter%20Deluxe%20(USA,%20Europe)",1,0,"0 B",1749278104,"07/06/2025, 07:35:04");</script>
+<script>customRow("BurgerTime Deluxe (World)","BurgerTime%20Deluxe%20(World)",1,0,"0 B",1749278104,"07/06/2025, 07:35:04");</script>
+<script>customRow("Bust-A-Move 2 - Arcade Edition (USA, Europe)","Bust-A-Move%202%20-%20Arcade%20Edition%20(USA,%20Europe)",1,0,"0 B",1749278104,"07/06/2025, 07:35:04");</script>
+<script>customRow("Bust-A-Move 3 DX (Europe)","Bust-A-Move%203%20DX%20(Europe)",1,0,"0 B",1749278104,"07/06/2025, 07:35:04");</script>
+<script>customRow("Buster Bros. (USA)","Buster%20Bros.%20(USA)",1,0,"0 B",1749278104,"07/06/2025, 07:35:04");</script>
+<script>customRow("Captain America and the Avengers (USA)","Captain%20America%20and%20the%20Avengers%20(USA)",1,0,"0 B",1749278104,"07/06/2025, 07:35:04");</script>
+<script>customRow("Captain Tsubasa (J) (S)","Captain%20Tsubasa%20(J)%20(S)",1,0,"0 B",1749278104,"07/06/2025, 07:35:04");</script>
+<script>customRow("Casper (USA)","Casper%20(USA)",1,0,"0 B",1749278104,"07/06/2025, 07:35:04");</script>
+<script>customRow("Castelian (USA)","Castelian%20(USA)",1,0,"0 B",1749278104,"07/06/2025, 07:35:04");</script>
+<script>customRow("Castle Quest (Europe)","Castle%20Quest%20(Europe)",1,0,"0 B",1749278104,"07/06/2025, 07:35:04");</script>
+<script>customRow("Castlevania - The Adventure (USA)","Castlevania%20-%20The%20Adventure%20(USA)",1,0,"0 B",1749278104,"07/06/2025, 07:35:04");</script>
+<script>customRow("Castlevania II - Belmont's Revenge (USA, Europe)","Castlevania%20II%20-%20Belmont's%20Revenge%20(USA,%20Europe)",1,0,"0 B",1749278104,"07/06/2025, 07:35:04");</script>
+<script>customRow("Castlevania Legends (USA, Europe)","Castlevania%20Legends%20(USA,%20Europe)",1,0,"0 B",1749278104,"07/06/2025, 07:35:04");</script>
+<script>customRow("Catrap (USA)","Catrap%20(USA)",1,0,"0 B",1749278104,"07/06/2025, 07:35:04");</script>
+<script>customRow("Centipede (USA, Europe)","Centipede%20(USA,%20Europe)",1,0,"0 B",1749278104,"07/06/2025, 07:35:04");</script>
+<script>customRow("Championship Pool (USA)","Championship%20Pool%20(USA)",1,0,"0 B",1749278104,"07/06/2025, 07:35:04");</script>
+<script>customRow("Chase H.Q. (USA, Europe)","Chase%20H.Q.%20(USA,%20Europe)",1,0,"0 B",1749278104,"07/06/2025, 07:35:04");</script>
+<script>customRow("Choplifter II - Rescue & Survive (USA)","Choplifter%20II%20-%20Rescue%20&%20Survive%20(USA)",1,0,"0 B",1749278104,"07/06/2025, 07:35:04");</script>
+<script>customRow("Choplifter III (Europe)","Choplifter%20III%20(Europe)",1,0,"0 B",1749278104,"07/06/2025, 07:35:04");</script>
+<script>customRow("Chuck Rock (USA, Europe)","Chuck%20Rock%20(USA,%20Europe)",1,0,"0 B",1749278104,"07/06/2025, 07:35:04");</script>
+<script>customRow("Cliffhanger (USA, Europe)","Cliffhanger%20(USA,%20Europe)",1,0,"0 B",1749278105,"07/06/2025, 07:35:05");</script>
+<script>customRow("College Slam (USA)","College%20Slam%20(USA)",1,0,"0 B",1749278105,"07/06/2025, 07:35:05");</script>
+<script>customRow("Contra - The Alien Wars (USA)","Contra%20-%20The%20Alien%20Wars%20(USA)",1,0,"0 B",1749278105,"07/06/2025, 07:35:05");</script>
+<script>customRow("Cool Ball (USA)","Cool%20Ball%20(USA)",1,0,"0 B",1749278105,"07/06/2025, 07:35:05");</script>
+<script>customRow("Cool Spot (USA)","Cool%20Spot%20(USA)",1,0,"0 B",1749278105,"07/06/2025, 07:35:05");</script>
+<script>customRow("Cool World (USA, Europe)","Cool%20World%20(USA,%20Europe)",1,0,"0 B",1749278105,"07/06/2025, 07:35:05");</script>
+<script>customRow("Cosmo Tank (USA)","Cosmo%20Tank%20(USA)",1,0,"0 B",1749278105,"07/06/2025, 07:35:05");</script>
+<script>customRow("Crayon Shin-Chan (J)","Crayon%20Shin-Chan%20(J)",1,0,"0 B",1749278105,"07/06/2025, 07:35:05");</script>
+<script>customRow("Crayon Shin-Chan 2 (J)","Crayon%20Shin-Chan%202%20(J)",1,0,"0 B",1749278105,"07/06/2025, 07:35:05");</script>
+<script>customRow("Crayon Shin-Chan 3 - Ora no Gokigen Athletic (J)","Crayon%20Shin-Chan%203%20-%20Ora%20no%20Gokigen%20Athletic%20(J)",1,0,"0 B",1749278105,"07/06/2025, 07:35:05");</script>
+<script>customRow("Crayon Shin-Chan 4 (J) (S)","Crayon%20Shin-Chan%204%20(J)%20(S)",1,0,"0 B",1749278105,"07/06/2025, 07:35:05");</script>
+<script>customRow("Crayon Shin-Chan 5 (J) (S)","Crayon%20Shin-Chan%205%20(J)%20(S)",1,0,"0 B",1749278105,"07/06/2025, 07:35:05");</script>
+<script>customRow("Crystal Quest (USA)","Crystal%20Quest%20(USA)",1,0,"0 B",1749278105,"07/06/2025, 07:35:05");</script>
+<script>customRow("CutThroat Island (USA, Europe)","CutThroat%20Island%20(USA,%20Europe)",1,0,"0 B",1749278105,"07/06/2025, 07:35:05");</script>
+<script>customRow("Cyraid (USA)","Cyraid%20(USA)",1,0,"0 B",1749278105,"07/06/2025, 07:35:05");</script>
+<script>customRow("Daedalian Opus (USA)","Daedalian%20Opus%20(USA)",1,0,"0 B",1749278105,"07/06/2025, 07:35:05");</script>
+<script>customRow("Daffy Duck (USA)","Daffy%20Duck%20(USA)",1,0,"0 B",1749278105,"07/06/2025, 07:35:05");</script>
+<script>customRow("Darkman (USA)","Darkman%20(USA)",1,0,"0 B",1749278105,"07/06/2025, 07:35:05");</script>
+<script>customRow("Darkwing Duck (USA)","Darkwing%20Duck%20(USA)",1,0,"0 B",1749278105,"07/06/2025, 07:35:05");</script>
+<script>customRow("David Crane's The Rescue of Princess Blobette (USA)","David%20Crane's%20The%20Rescue%20of%20Princess%20Blobette%20(USA)",1,0,"0 B",1749278105,"07/06/2025, 07:35:05");</script>
+<script>customRow("Days of Thunder (USA, Europe)","Days%20of%20Thunder%20(USA,%20Europe)",1,0,"0 B",1749278105,"07/06/2025, 07:35:05");</script>
+<script>customRow("Dead Heat Scramble (USA)","Dead%20Heat%20Scramble%20(USA)",1,0,"0 B",1749278105,"07/06/2025, 07:35:05");</script>
+<script>customRow("Dennis the Menace (USA)","Dennis%20the%20Menace%20(USA)",1,0,"0 B",1749278105,"07/06/2025, 07:35:05");</script>
+<script>customRow("Desert Strike - Return to the Gulf (USA)","Desert%20Strike%20-%20Return%20to%20the%20Gulf%20(USA)",1,0,"0 B",1749278105,"07/06/2025, 07:35:05");</script>
+<script>customRow("Dexterity (USA, Europe)","Dexterity%20(USA,%20Europe)",1,0,"0 B",1749278105,"07/06/2025, 07:35:05");</script>
+<script>customRow("Dick Tracy (USA)","Dick%20Tracy%20(USA)",1,0,"0 B",1749278105,"07/06/2025, 07:35:05");</script>
+<script>customRow("Dig Dug (USA)","Dig%20Dug%20(USA)",1,0,"0 B",1749278105,"07/06/2025, 07:35:05");</script>
+<script>customRow("Dirty Racing (J)","Dirty%20Racing%20(J)",1,0,"0 B",1749278105,"07/06/2025, 07:35:05");</script>
+<script>customRow("Donkey Kong (World) (Rev A)","Donkey%20Kong%20(World)%20(Rev%20A)",1,0,"0 B",1749278105,"07/06/2025, 07:35:05");</script>
+<script>customRow("Donkey Kong Land (USA, Europe)","Donkey%20Kong%20Land%20(USA,%20Europe)",1,0,"0 B",1749278105,"07/06/2025, 07:35:05");</script>
+<script>customRow("Donkey Kong Land 2 (USA, Europe)","Donkey%20Kong%20Land%202%20(USA,%20Europe)",1,0,"0 B",1749278105,"07/06/2025, 07:35:05");</script>
+<script>customRow("Donkey Kong Land III (USA, Europe) (Rev A)","Donkey%20Kong%20Land%20III%20(USA,%20Europe)%20(Rev%20A)",1,0,"0 B",1749278105,"07/06/2025, 07:35:05");</script>
+<script>customRow("Double Dragon (USA, Europe)","Double%20Dragon%20(USA,%20Europe)",1,0,"0 B",1749278105,"07/06/2025, 07:35:05");</script>
+<script>customRow("Double Dragon 3 (USA, Europe)","Double%20Dragon%203%20(USA,%20Europe)",1,0,"0 B",1749278105,"07/06/2025, 07:35:05");</script>
+<script>customRow("Double Dragon II (USA, Europe)","Double%20Dragon%20II%20(USA,%20Europe)",1,0,"0 B",1749278105,"07/06/2025, 07:35:05");</script>
+<script>customRow("Double Dribble - 5 on 5 (USA)","Double%20Dribble%20-%205%20on%205%20(USA)",1,0,"0 B",1749278105,"07/06/2025, 07:35:05");</script>
+<script>customRow("Dr. Franken (USA)","Dr.%20Franken%20(USA)",1,0,"0 B",1749278105,"07/06/2025, 07:35:05");</script>
+<script>customRow("Dr. Franken II (USA, Europe)","Dr.%20Franken%20II%20(USA,%20Europe)",1,0,"0 B",1749278105,"07/06/2025, 07:35:05");</script>
+<script>customRow("Dr. Mario (World) (Rev A)","Dr.%20Mario%20(World)%20(Rev%20A)",1,0,"0 B",1749278105,"07/06/2025, 07:35:05");</script>
+<script>customRow("Dragon's Lair - The Legend (USA)","Dragon's%20Lair%20-%20The%20Legend%20(USA)",1,0,"0 B",1749278105,"07/06/2025, 07:35:05");</script>
+<script>customRow("DragonHeart (USA, Europe)","DragonHeart%20(USA,%20Europe)",1,0,"0 B",1749278105,"07/06/2025, 07:35:05");</script>
+<script>customRow("Dropzone (Europe)","Dropzone%20(Europe)",1,0,"0 B",1749278105,"07/06/2025, 07:35:05");</script>
+<script>customRow("DuckTales (USA)","DuckTales%20(USA)",1,0,"0 B",1749278105,"07/06/2025, 07:35:05");</script>
+<script>customRow("DuckTales 2 (USA)","DuckTales%202%20(USA)",1,0,"0 B",1749278105,"07/06/2025, 07:35:05");</script>
+<script>customRow("Earthworm Jim (USA)","Earthworm%20Jim%20(USA)",1,0,"0 B",1749278105,"07/06/2025, 07:35:05");</script>
+<script>customRow("Elevator Action (USA, Europe)","Elevator%20Action%20(USA,%20Europe)",1,0,"0 B",1749278105,"07/06/2025, 07:35:05");</script>
+<script>customRow("Elite Soccer (USA)","Elite%20Soccer%20(USA)",1,0,"0 B",1749278105,"07/06/2025, 07:35:05");</script>
+<script>customRow("Extra Bases! (USA)","Extra%20Bases!%20(USA)",1,0,"0 B",1749278105,"07/06/2025, 07:35:05");</script>
+<script>customRow("F-1 Race (World) (Rev A)","F-1%20Race%20(World)%20(Rev%20A)",1,0,"0 B",1749278105,"07/06/2025, 07:35:05");</script>
+<script>customRow("F-15 Strike Eagle (USA, Europe)","F-15%20Strike%20Eagle%20(USA,%20Europe)",1,0,"0 B",1749278105,"07/06/2025, 07:35:05");</script>
+<script>customRow("F1 Pole Position (USA, Europe)","F1%20Pole%20Position%20(USA,%20Europe)",1,0,"0 B",1749278105,"07/06/2025, 07:35:05");</script>
+<script>customRow("Faceball 2000 (USA)","Faceball%202000%20(USA)",1,0,"0 B",1749278105,"07/06/2025, 07:35:05");</script>
+<script>customRow("Fastest Lap (Japan, USA)","Fastest%20Lap%20(Japan,%20USA)",1,0,"0 B",1749278105,"07/06/2025, 07:35:05");</script>
+<script>customRow("Felix the Cat (USA, Europe)","Felix%20the%20Cat%20(USA,%20Europe)",1,0,"0 B",1749278105,"07/06/2025, 07:35:05");</script>
+<script>customRow("Ferrari Grand Prix Challenge (USA, Europe)","Ferrari%20Grand%20Prix%20Challenge%20(USA,%20Europe)",1,0,"0 B",1749278105,"07/06/2025, 07:35:05");</script>
+<script>customRow("Fidgetts, The (USA, Europe)","Fidgetts,%20The%20(USA,%20Europe)",1,0,"0 B",1749278105,"07/06/2025, 07:35:05");</script>
+<script>customRow("Fighting Simulator 2 in 1 (USA, Europe)","Fighting%20Simulator%202%20in%201%20(USA,%20Europe)",1,0,"0 B",1749278105,"07/06/2025, 07:35:05");</script>
+<script>customRow("Final Fantasy Adventure (USA)","Final%20Fantasy%20Adventure%20(USA)",1,0,"0 B",1749278105,"07/06/2025, 07:35:05");</script>
+<script>customRow("Final Fantasy Legend II (USA)","Final%20Fantasy%20Legend%20II%20(USA)",1,0,"0 B",1749278105,"07/06/2025, 07:35:05");</script>
+<script>customRow("Final Fantasy Legend III (USA)","Final%20Fantasy%20Legend%20III%20(USA)",1,0,"0 B",1749278105,"07/06/2025, 07:35:05");</script>
+<script>customRow("Final Fantasy Legend, The (USA)","Final%20Fantasy%20Legend,%20The%20(USA)",1,0,"0 B",1749278105,"07/06/2025, 07:35:05");</script>
+<script>customRow("Fire Fighter (Europe)","Fire%20Fighter%20(Europe)",1,0,"0 B",1749278105,"07/06/2025, 07:35:05");</script>
+<script>customRow("Fish Dude (USA)","Fish%20Dude%20(USA)",1,0,"0 B",1749278105,"07/06/2025, 07:35:05");</script>
+<script>customRow("Fist of the North Star (USA)","Fist%20of%20the%20North%20Star%20(USA)",1,0,"0 B",1749278105,"07/06/2025, 07:35:05");</script>
+<script>customRow("Flash, The (USA, Europe)","Flash,%20The%20(USA,%20Europe)",1,0,"0 B",1749278105,"07/06/2025, 07:35:05");</script>
+<script>customRow("Flintstones, The - King Rock Treasure Island (USA, Europe)","Flintstones,%20The%20-%20King%20Rock%20Treasure%20Island%20(USA,%20Europe)",1,0,"0 B",1749278105,"07/06/2025, 07:35:05");</script>
+<script>customRow("Flintstones, The (USA, Europe)","Flintstones,%20The%20(USA,%20Europe)",1,0,"0 B",1749278105,"07/06/2025, 07:35:05");</script>
+<script>customRow("Flipull (USA)","Flipull%20(USA)",1,0,"0 B",1749278105,"07/06/2025, 07:35:05");</script>
+<script>customRow("Foreman for Real (USA, Europe)","Foreman%20for%20Real%20(USA,%20Europe)",1,0,"0 B",1749278105,"07/06/2025, 07:35:05");</script>
+<script>customRow("Fortified Zone (USA, Europe)","Fortified%20Zone%20(USA,%20Europe)",1,0,"0 B",1749278105,"07/06/2025, 07:35:05");</script>
+<script>customRow("Franky, Joe & Dirk... On the Tiles (Europe)","Franky,%20Joe%20&%20Dirk...%20On%20the%20Tiles%20(Europe)",1,0,"0 B",1749278105,"07/06/2025, 07:35:05");</script>
+<script>customRow("Fushigi na Blobby - Princess Blob o Tsukue! (J)","Fushigi%20na%20Blobby%20-%20Princess%20Blob%20o%20Tsukue!%20(J)",1,0,"0 B",1749278105,"07/06/2025, 07:35:05");</script>
+<script>customRow("Game & Watch Gallery (USA) (Rev A)","Game%20&%20Watch%20Gallery%20(USA)%20(Rev%20A)",1,0,"0 B",1749278105,"07/06/2025, 07:35:05");</script>
+<script>customRow("Game Boy Gallery (Europe)","Game%20Boy%20Gallery%20(Europe)",1,0,"0 B",1749278105,"07/06/2025, 07:35:05");</script>
+<script>customRow("Game of Harmony, The (USA)","Game%20of%20Harmony,%20The%20(USA)",1,0,"0 B",1749278105,"07/06/2025, 07:35:05");</script>
+<script>customRow("Gargoyle's Quest (USA, Europe)","Gargoyle's%20Quest%20(USA,%20Europe)",1,0,"0 B",1749278105,"07/06/2025, 07:35:05");</script>
+<script>customRow("Gargoyle's Quest II (Japan) (Translated En)","Gargoyle's%20Quest%20II%20(Japan)%20(Translated%20En)",1,0,"0 B",1749278105,"07/06/2025, 07:35:05");</script>
+<script>customRow("Gauntlet II (USA, Europe)","Gauntlet%20II%20(USA,%20Europe)",1,0,"0 B",1749278106,"07/06/2025, 07:35:06");</script>
+<script>customRow("GB Genjin Land - Viva Chikkun Oukoku (J)","GB%20Genjin%20Land%20-%20Viva%20Chikkun%20Oukoku%20(J)",1,0,"0 B",1749278106,"07/06/2025, 07:35:06");</script>
+<script>customRow("Gear Works (USA, Europe)","Gear%20Works%20(USA,%20Europe)",1,0,"0 B",1749278106,"07/06/2025, 07:35:06");</script>
+<script>customRow("Genjin Cottu (J) (S)","Genjin%20Cottu%20(J)%20(S)",1,0,"0 B",1749278106,"07/06/2025, 07:35:06");</script>
+<script>customRow("George Foreman's KO Boxing (USA, Europe)","George%20Foreman's%20KO%20Boxing%20(USA,%20Europe)",1,0,"0 B",1749278106,"07/06/2025, 07:35:06");</script>
+<script>customRow("Getaway, The (USA)","Getaway,%20The%20(USA)",1,0,"0 B",1749278106,"07/06/2025, 07:35:06");</script>
+<script>customRow("Ghostbusters II (USA, Europe)","Ghostbusters%20II%20(USA,%20Europe)",1,0,"0 B",1749278106,"07/06/2025, 07:35:06");</script>
+<script>customRow("Go! Go! Tank (USA)","Go!%20Go!%20Tank%20(USA)",1,0,"0 B",1749278106,"07/06/2025, 07:35:06");</script>
+<script>customRow("Goal! (USA)","Goal!%20(USA)",1,0,"0 B",1749278106,"07/06/2025, 07:35:06");</script>
+<script>customRow("Godzilla (USA, Europe)","Godzilla%20(USA,%20Europe)",1,0,"0 B",1749278106,"07/06/2025, 07:35:06");</script>
+<script>customRow("Golf (World)","Golf%20(World)",1,0,"0 B",1749278106,"07/06/2025, 07:35:06");</script>
+<script>customRow("Gradius - The Interstellar Assault (USA)","Gradius%20-%20The%20Interstellar%20Assault%20(USA)",1,0,"0 B",1749278106,"07/06/2025, 07:35:06");</script>
+<script>customRow("Great Greed (USA)","Great%20Greed%20(USA)",1,0,"0 B",1749278106,"07/06/2025, 07:35:06");</script>
+<script>customRow("Gremlins 2 - The New Batch (World)","Gremlins%202%20-%20The%20New%20Batch%20(World)",1,0,"0 B",1749278106,"07/06/2025, 07:35:06");</script>
+<script>customRow("HAL Wrestling (USA)","HAL%20Wrestling%20(USA)",1,0,"0 B",1749278106,"07/06/2025, 07:35:06");</script>
+<script>customRow("Hammerin' Harry - Ghost Building Company (Europe)","Hammerin'%20Harry%20-%20Ghost%20Building%20Company%20(Europe)",1,0,"0 B",1749278106,"07/06/2025, 07:35:06");</script>
+<script>customRow("Hatris (Japan, USA)","Hatris%20(Japan,%20USA)",1,0,"0 B",1749278106,"07/06/2025, 07:35:06");</script>
+<script>customRow("Heavyweight Championship Boxing (USA)","Heavyweight%20Championship%20Boxing%20(USA)",1,0,"0 B",1749278106,"07/06/2025, 07:35:06");</script>
+<script>customRow("Heiankyo Alien (USA)","Heiankyo%20Alien%20(USA)",1,0,"0 B",1749278106,"07/06/2025, 07:35:06");</script>
+<script>customRow("Hercules (USA, Europe)","Hercules%20(USA,%20Europe)",1,0,"0 B",1749278106,"07/06/2025, 07:35:06");</script>
+<script>customRow("High Stakes Gambling (USA)","High%20Stakes%20Gambling%20(USA)",1,0,"0 B",1749278106,"07/06/2025, 07:35:06");</script>
+<script>customRow("Hit the Ice (USA, Europe)","Hit%20the%20Ice%20(USA,%20Europe)",1,0,"0 B",1749278106,"07/06/2025, 07:35:06");</script>
+<script>customRow("Home Alone (USA, Europe)","Home%20Alone%20(USA,%20Europe)",1,0,"0 B",1749278106,"07/06/2025, 07:35:06");</script>
+<script>customRow("Home Alone 2 - Lost In New York (USA, Europe)","Home%20Alone%202%20-%20Lost%20In%20New%20York%20(USA,%20Europe)",1,0,"0 B",1749278106,"07/06/2025, 07:35:06");</script>
+<script>customRow("Hook (USA)","Hook%20(USA)",1,0,"0 B",1749278106,"07/06/2025, 07:35:06");</script>
+<script>customRow("Hudson Hawk (USA)","Hudson%20Hawk%20(USA)",1,0,"0 B",1749278106,"07/06/2025, 07:35:06");</script>
+<script>customRow("Humans, The (USA)","Humans,%20The%20(USA)",1,0,"0 B",1749278106,"07/06/2025, 07:35:06");</script>
+<script>customRow("Hunchback of Notre Dame, The - 5 Foolishly Fun Topsy Turvy Games (USA, Europe)","Hunchback%20of%20Notre%20Dame,%20The%20-%205%20Foolishly%20Fun%20Topsy%20Turvy%20Games%20(USA,%20Europe)",1,0,"0 B",1749278106,"07/06/2025, 07:35:06");</script>
+<script>customRow("Hunt for Red October, The (USA, Europe)","Hunt%20for%20Red%20October,%20The%20(USA,%20Europe)",1,0,"0 B",1749278106,"07/06/2025, 07:35:06");</script>
+<script>customRow("Hyper Lode Runner (World) (Rev A)","Hyper%20Lode%20Runner%20(World)%20(Rev%20A)",1,0,"0 B",1749278106,"07/06/2025, 07:35:06");</script>
+<script>customRow("Ikari no Yousai (J)","Ikari%20no%20Yousai%20(J)",1,0,"0 B",1749278106,"07/06/2025, 07:35:06");</script>
+<script>customRow("Ikari no Yousai 2 (J)","Ikari%20no%20Yousai%202%20(J)",1,0,"0 B",1749278106,"07/06/2025, 07:35:06");</script>
+<script>customRow("Ikari no Yousai 2 (Japan) (Translated En)","Ikari%20no%20Yousai%202%20(Japan)%20(Translated%20En)",1,0,"0 B",1749278106,"07/06/2025, 07:35:06");</script>
+<script>customRow("In Your Face (USA)","In%20Your%20Face%20(USA)",1,0,"0 B",1749278106,"07/06/2025, 07:35:06");</script>
+<script>customRow("Incredible Crash Dummies, The (USA, Europe)","Incredible%20Crash%20Dummies,%20The%20(USA,%20Europe)",1,0,"0 B",1749278106,"07/06/2025, 07:35:06");</script>
+<script>customRow("Indiana Jones and the Last Crusade (USA, Europe)","Indiana%20Jones%20and%20the%20Last%20Crusade%20(USA,%20Europe)",1,0,"0 B",1749278106,"07/06/2025, 07:35:06");</script>
+<script>customRow("International Superstar Soccer (USA, Europe)","International%20Superstar%20Soccer%20(USA,%20Europe)",1,0,"0 B",1749278106,"07/06/2025, 07:35:06");</script>
+<script>customRow("Ironman X-O Manowar in Heavy Metal (USA, Europe)","Ironman%20X-O%20Manowar%20in%20Heavy%20Metal%20(USA,%20Europe)",1,0,"0 B",1749278106,"07/06/2025, 07:35:06");</script>
+<script>customRow("Ishido - The Way of Stones (USA)","Ishido%20-%20The%20Way%20of%20Stones%20(USA)",1,0,"0 B",1749278106,"07/06/2025, 07:35:06");</script>
+<script>customRow("James Bond 007 (USA, Europe)","James%20Bond%20007%20(USA,%20Europe)",1,0,"0 B",1749278106,"07/06/2025, 07:35:06");</script>
+<script>customRow("Jeep Jamboree (USA)","Jeep%20Jamboree%20(USA)",1,0,"0 B",1749278106,"07/06/2025, 07:35:06");</script>
+<script>customRow("Jelly Boy (Europe)","Jelly%20Boy%20(Europe)",1,0,"0 B",1749278106,"07/06/2025, 07:35:06");</script>
+<script>customRow("Jetsons, The - Robot Panic (USA, Europe)","Jetsons,%20The%20-%20Robot%20Panic%20(USA,%20Europe)",1,0,"0 B",1749278106,"07/06/2025, 07:35:06");</script>
+<script>customRow("Jimmy Connors Tennis (USA, Europe)","Jimmy%20Connors%20Tennis%20(USA,%20Europe)",1,0,"0 B",1749278106,"07/06/2025, 07:35:06");</script>
+<script>customRow("Joe & Mac (USA)","Joe%20&%20Mac%20(USA)",1,0,"0 B",1749278106,"07/06/2025, 07:35:06");</script>
+<script>customRow("Jordan vs Bird - One on One (USA, Europe)","Jordan%20vs%20Bird%20-%20One%20on%20One%20(USA,%20Europe)",1,0,"0 B",1749278106,"07/06/2025, 07:35:06");</script>
+<script>customRow("Judge Dredd (USA, Europe)","Judge%20Dredd%20(USA,%20Europe)",1,0,"0 B",1749278106,"07/06/2025, 07:35:06");</script>
+<script>customRow("Jungle Book, The (USA, Europe)","Jungle%20Book,%20The%20(USA,%20Europe)",1,0,"0 B",1749278106,"07/06/2025, 07:35:06");</script>
+<script>customRow("Jungle Strike (USA, Europe)","Jungle%20Strike%20(USA,%20Europe)",1,0,"0 B",1749278106,"07/06/2025, 07:35:06");</script>
+<script>customRow("Jurassic Park (USA)","Jurassic%20Park%20(USA)",1,0,"0 B",1749278106,"07/06/2025, 07:35:06");</script>
+<script>customRow("Jurassic Park Part 2 - The Chaos Continues (USA, Europe)","Jurassic%20Park%20Part%202%20-%20The%20Chaos%20Continues%20(USA,%20Europe)",1,0,"0 B",1749278106,"07/06/2025, 07:35:06");</script>
+<script>customRow("Kid Dracula (USA, Europe)","Kid%20Dracula%20(USA,%20Europe)",1,0,"0 B",1749278106,"07/06/2025, 07:35:06");</script>
+<script>customRow("Kid Icarus - Of Myths and Monsters (USA, Europe)","Kid%20Icarus%20-%20Of%20Myths%20and%20Monsters%20(USA,%20Europe)",1,0,"0 B",1749278106,"07/06/2025, 07:35:06");</script>
+<script>customRow("Killer Instinct (USA, Europe)","Killer%20Instinct%20(USA,%20Europe)",1,0,"0 B",1749278106,"07/06/2025, 07:35:06");</script>
+<script>customRow("King of Fighters '95, The (USA)","King%20of%20Fighters%20'95,%20The%20(USA)",1,0,"0 B",1749278106,"07/06/2025, 07:35:06");</script>
+<script>customRow("King of Fighters, The - Heat of Battle (Europe)","King%20of%20Fighters,%20The%20-%20Heat%20of%20Battle%20(Europe)",1,0,"0 B",1749278106,"07/06/2025, 07:35:06");</script>
+<script>customRow("Kingdom Crusade (USA)","Kingdom%20Crusade%20(USA)",1,0,"0 B",1749278106,"07/06/2025, 07:35:06");</script>
+<script>customRow("Kirby's Block Ball (USA, Europe)","Kirby's%20Block%20Ball%20(USA,%20Europe)",1,0,"0 B",1749278106,"07/06/2025, 07:35:06");</script>
+<script>customRow("Kirby's Dream Land (USA, Europe)","Kirby's%20Dream%20Land%20(USA,%20Europe)",1,0,"0 B",1749278106,"07/06/2025, 07:35:06");</script>
+<script>customRow("Kirby's Dream Land 2 (USA, Europe)","Kirby's%20Dream%20Land%202%20(USA,%20Europe)",1,0,"0 B",1749278106,"07/06/2025, 07:35:06");</script>
+<script>customRow("Kirby's Pinball Land (USA, Europe)","Kirby's%20Pinball%20Land%20(USA,%20Europe)",1,0,"0 B",1749278106,"07/06/2025, 07:35:06");</script>
+<script>customRow("Kirby's Star Stacker (USA, Europe)","Kirby's%20Star%20Stacker%20(USA,%20Europe)",1,0,"0 B",1749278106,"07/06/2025, 07:35:06");</script>
+<script>customRow("Klax (USA)","Klax%20(USA)",1,0,"0 B",1749278106,"07/06/2025, 07:35:06");</script>
+<script>customRow("Knight Quest (USA)","Knight%20Quest%20(USA)",1,0,"0 B",1749278106,"07/06/2025, 07:35:06");</script>
+<script>customRow("Krusty's Fun House (USA, Europe)","Krusty's%20Fun%20House%20(USA,%20Europe)",1,0,"0 B",1749278106,"07/06/2025, 07:35:06");</script>
+<script>customRow("Kung-Fu Master (USA, Europe)","Kung-Fu%20Master%20(USA,%20Europe)",1,0,"0 B",1749278106,"07/06/2025, 07:35:06");</script>
+<script>customRow("Kwirk - He's A-maze-ing! (USA, Europe)","Kwirk%20-%20He's%20A-maze-ing!%20(USA,%20Europe)",1,0,"0 B",1749278106,"07/06/2025, 07:35:06");</script>
+<script>customRow("Lamborghini American Challenge (USA, Europe)","Lamborghini%20American%20Challenge%20(USA,%20Europe)",1,0,"0 B",1749278106,"07/06/2025, 07:35:06");</script>
+<script>customRow("Last Action Hero (USA, Europe)","Last%20Action%20Hero%20(USA,%20Europe)",1,0,"0 B",1749278106,"07/06/2025, 07:35:06");</script>
+<script>customRow("Lawnmower Man, The (Europe)","Lawnmower%20Man,%20The%20(Europe)",1,0,"0 B",1749278106,"07/06/2025, 07:35:06");</script>
+<script>customRow("Lazlos' Leap (USA)","Lazlos'%20Leap%20(USA)",1,0,"0 B",1749278106,"07/06/2025, 07:35:06");</script>
+<script>customRow("Legend of Zelda, The - Link's Awakening (USA, Europe) (Rev B)","Legend%20of%20Zelda,%20The%20-%20Link's%20Awakening%20(USA,%20Europe)%20(Rev%20B)",1,0,"0 B",1749278106,"07/06/2025, 07:35:06");</script>
+<script>customRow("Lemmings (USA)","Lemmings%20(USA)",1,0,"0 B",1749278106,"07/06/2025, 07:35:06");</script>
+<script>customRow("Lemmings 2 - The Tribes (Europe)","Lemmings%202%20-%20The%20Tribes%20(Europe)",1,0,"0 B",1749278106,"07/06/2025, 07:35:06");</script>
+<script>customRow("Lethal Weapon (USA)","Lethal%20Weapon%20(USA)",1,0,"0 B",1749278107,"07/06/2025, 07:35:07");</script>
+<script>customRow("Lingo (Europe)","Lingo%20(Europe)",1,0,"0 B",1749278107,"07/06/2025, 07:35:07");</script>
+<script>customRow("Lion King, The (USA)","Lion%20King,%20The%20(USA)",1,0,"0 B",1749278107,"07/06/2025, 07:35:07");</script>
+<script>customRow("Little Mermaid, The (USA)","Little%20Mermaid,%20The%20(USA)",1,0,"0 B",1749278107,"07/06/2025, 07:35:07");</script>
+<script>customRow("Lock'n Chase (World)","Lock'n%20Chase%20(World)",1,0,"0 B",1749278107,"07/06/2025, 07:35:07");</script>
+<script>customRow("Looney Tunes (USA, Europe)","Looney%20Tunes%20(USA,%20Europe)",1,0,"0 B",1749278107,"07/06/2025, 07:35:07");</script>
+<script>customRow("Loopz (World)","Loopz%20(World)",1,0,"0 B",1749278107,"07/06/2025, 07:35:07");</script>
+<script>customRow("Lost World, The - Jurassic Park (USA, Europe)","Lost%20World,%20The%20-%20Jurassic%20Park%20(USA,%20Europe)",1,0,"0 B",1749278107,"07/06/2025, 07:35:07");</script>
+<script>customRow("Lucky Luke (Europe)","Lucky%20Luke%20(Europe)",1,0,"0 B",1749278107,"07/06/2025, 07:35:07");</script>
+<script>customRow("Lucle (Japan, Europe)","Lucle%20(Japan,%20Europe)",1,0,"0 B",1749278107,"07/06/2025, 07:35:07");</script>
+<script>customRow("Madden '95 (USA, Europe)","Madden%20'95%20(USA,%20Europe)",1,0,"0 B",1749278107,"07/06/2025, 07:35:07");</script>
+<script>customRow("Madden '96 (USA, Europe)","Madden%20'96%20(USA,%20Europe)",1,0,"0 B",1749278107,"07/06/2025, 07:35:07");</script>
+<script>customRow("Madden '97 (USA)","Madden%20'97%20(USA)",1,0,"0 B",1749278107,"07/06/2025, 07:35:07");</script>
+<script>customRow("Magnetic Soccer (Europe)","Magnetic%20Soccer%20(Europe)",1,0,"0 B",1749278107,"07/06/2025, 07:35:07");</script>
+<script>customRow("Malibu Beach Volleyball (USA)","Malibu%20Beach%20Volleyball%20(USA)",1,0,"0 B",1749278107,"07/06/2025, 07:35:07");</script>
+<script>customRow("Marble Madness (USA, Europe)","Marble%20Madness%20(USA,%20Europe)",1,0,"0 B",1749278107,"07/06/2025, 07:35:07");</script>
+<script>customRow("Mario's Picross (USA, Europe)","Mario's%20Picross%20(USA,%20Europe)",1,0,"0 B",1749278107,"07/06/2025, 07:35:07");</script>
+<script>customRow("Maru's Mission (USA)","Maru's%20Mission%20(USA)",1,0,"0 B",1749278107,"07/06/2025, 07:35:07");</script>
+<script>customRow("Maui Mallard (USA)","Maui%20Mallard%20(USA)",1,0,"0 B",1749278107,"07/06/2025, 07:35:07");</script>
+<script>customRow("Maus, Die (Europe)","Maus,%20Die%20(Europe)",1,0,"0 B",1749278107,"07/06/2025, 07:35:07");</script>
+<script>customRow("Max (Europe)","Max%20(Europe)",1,0,"0 B",1749278107,"07/06/2025, 07:35:07");</script>
+<script>customRow("Mega Man - Dr. Wily's Revenge (USA)","Mega%20Man%20-%20Dr.%20Wily's%20Revenge%20(USA)",1,0,"0 B",1749278107,"07/06/2025, 07:35:07");</script>
+<script>customRow("Mega Man II (USA)","Mega%20Man%20II%20(USA)",1,0,"0 B",1749278107,"07/06/2025, 07:35:07");</script>
+<script>customRow("Mega Man III (USA)","Mega%20Man%20III%20(USA)",1,0,"0 B",1749278107,"07/06/2025, 07:35:07");</script>
+<script>customRow("Mega Man IV (USA)","Mega%20Man%20IV%20(USA)",1,0,"0 B",1749278107,"07/06/2025, 07:35:07");</script>
+<script>customRow("Mega Man V (USA)","Mega%20Man%20V%20(USA)",1,0,"0 B",1749278107,"07/06/2025, 07:35:07");</script>
+<script>customRow("Megalit (USA, Europe)","Megalit%20(USA,%20Europe)",1,0,"0 B",1749278107,"07/06/2025, 07:35:07");</script>
+<script>customRow("Mercenary Force (USA, Europe)","Mercenary%20Force%20(USA,%20Europe)",1,0,"0 B",1749278107,"07/06/2025, 07:35:07");</script>
+<script>customRow("Metal Masters (USA)","Metal%20Masters%20(USA)",1,0,"0 B",1749278107,"07/06/2025, 07:35:07");</script>
+<script>customRow("Metroid II - Return of Samus (World)","Metroid%20II%20-%20Return%20of%20Samus%20(World)",1,0,"0 B",1749278107,"07/06/2025, 07:35:07");</script>
+<script>customRow("Mickey Mouse - Magic Wand (USA, Europe)","Mickey%20Mouse%20-%20Magic%20Wand%20(USA,%20Europe)",1,0,"0 B",1749278107,"07/06/2025, 07:35:07");</script>
+<script>customRow("Mickey's Chase (USA)","Mickey's%20Chase%20(USA)",1,0,"0 B",1749278107,"07/06/2025, 07:35:07");</script>
+<script>customRow("Mickey's Ultimate Challenge (USA, Europe)","Mickey's%20Ultimate%20Challenge%20(USA,%20Europe)",1,0,"0 B",1749278107,"07/06/2025, 07:35:07");</script>
+<script>customRow("Micro Machines (USA, Europe)","Micro%20Machines%20(USA,%20Europe)",1,0,"0 B",1749278107,"07/06/2025, 07:35:07");</script>
+<script>customRow("Micro Machines 2 - Turbo Tournament (Europe)","Micro%20Machines%202%20-%20Turbo%20Tournament%20(Europe)",1,0,"0 B",1749278107,"07/06/2025, 07:35:07");</script>
+<script>customRow("Mighty Morphin Power Rangers - The Movie (USA, Europe)","Mighty%20Morphin%20Power%20Rangers%20-%20The%20Movie%20(USA,%20Europe)",1,0,"0 B",1749278107,"07/06/2025, 07:35:07");</script>
+<script>customRow("Mighty Morphin Power Rangers (USA, Europe)","Mighty%20Morphin%20Power%20Rangers%20(USA,%20Europe)",1,0,"0 B",1749278107,"07/06/2025, 07:35:07");</script>
+<script>customRow("Milon's Secret Castle (USA, Europe)","Milon's%20Secret%20Castle%20(USA,%20Europe)",1,0,"0 B",1749278107,"07/06/2025, 07:35:07");</script>
+<script>customRow("Miner 2049er (USA)","Miner%202049er%20(USA)",1,0,"0 B",1749278107,"07/06/2025, 07:35:07");</script>
+<script>customRow("Missile Command (USA, Europe)","Missile%20Command%20(USA,%20Europe)",1,0,"0 B",1749278107,"07/06/2025, 07:35:07");</script>
+<script>customRow("Mole Mania (USA, Europe)","Mole%20Mania%20(USA,%20Europe)",1,0,"0 B",1749278107,"07/06/2025, 07:35:07");</script>
+<script>customRow("Momotarou Dengeki (J)","Momotarou%20Dengeki%20(J)",1,0,"0 B",1749278107,"07/06/2025, 07:35:07");</script>
+<script>customRow("Momotarou Dengeki 2 (J) (S)","Momotarou%20Dengeki%202%20(J)%20(S)",1,0,"0 B",1749278107,"07/06/2025, 07:35:07");</script>
+<script>customRow("Monster Max (Europe)","Monster%20Max%20(Europe)",1,0,"0 B",1749278107,"07/06/2025, 07:35:07");</script>
+<script>customRow("Monster Truck Wars (USA, Europe)","Monster%20Truck%20Wars%20(USA,%20Europe)",1,0,"0 B",1749278107,"07/06/2025, 07:35:07");</script>
+<script>customRow("Montezuma's Return! (Europe)","Montezuma's%20Return!%20(Europe)",1,0,"0 B",1749278107,"07/06/2025, 07:35:07");</script>
+<script>customRow("Mortal Kombat (USA, Europe)","Mortal%20Kombat%20(USA,%20Europe)",1,0,"0 B",1749278107,"07/06/2025, 07:35:07");</script>
+<script>customRow("Mortal Kombat 3 (USA)","Mortal%20Kombat%203%20(USA)",1,0,"0 B",1749278107,"07/06/2025, 07:35:07");</script>
+<script>customRow("Mortal Kombat I & II (USA, Europe)","Mortal%20Kombat%20I%20&%20II%20(USA,%20Europe)",1,0,"0 B",1749278107,"07/06/2025, 07:35:07");</script>
+<script>customRow("Mortal Kombat II (USA, Europe)","Mortal%20Kombat%20II%20(USA,%20Europe)",1,0,"0 B",1749278107,"07/06/2025, 07:35:07");</script>
+<script>customRow("Motocross Maniacs (USA)","Motocross%20Maniacs%20(USA)",1,0,"0 B",1749278107,"07/06/2025, 07:35:07");</script>
+<script>customRow("Mouse Trap Hotel (USA)","Mouse%20Trap%20Hotel%20(USA)",1,0,"0 B",1749278107,"07/06/2025, 07:35:07");</script>
+<script>customRow("Mr. Chin's Gourmet Paradise (USA)","Mr.%20Chin's%20Gourmet%20Paradise%20(USA)",1,0,"0 B",1749278107,"07/06/2025, 07:35:07");</script>
+<script>customRow("Mr. Do! (USA)","Mr.%20Do!%20(USA)",1,0,"0 B",1749278107,"07/06/2025, 07:35:07");</script>
+<script>customRow("Mr. Nutz (Europe)","Mr.%20Nutz%20(Europe)",1,0,"0 B",1749278107,"07/06/2025, 07:35:07");</script>
+<script>customRow("Ms. Pac-Man (USA)","Ms.%20Pac-Man%20(USA)",1,0,"0 B",1749278107,"07/06/2025, 07:35:07");</script>
+<script>customRow("Muhammad Ali's Boxing (USA, Europe)","Muhammad%20Ali's%20Boxing%20(USA,%20Europe)",1,0,"0 B",1749278107,"07/06/2025, 07:35:07");</script>
+<script>customRow("Mulan (USA, Europe)","Mulan%20(USA,%20Europe)",1,0,"0 B",1749278107,"07/06/2025, 07:35:07");</script>
+<script>customRow("Mysterium (USA)","Mysterium%20(USA)",1,0,"0 B",1749278107,"07/06/2025, 07:35:07");</script>
+<script>customRow("Mystical Ninja Starring Goemon (USA)","Mystical%20Ninja%20Starring%20Goemon%20(USA)",1,0,"0 B",1749278107,"07/06/2025, 07:35:07");</script>
+<script>customRow("Nail'n Scale (USA, Europe)","Nail'n%20Scale%20(USA,%20Europe)",1,0,"0 B",1749278107,"07/06/2025, 07:35:07");</script>
+<script>customRow("Navy Seals (USA, Europe)","Navy%20Seals%20(USA,%20Europe)",1,0,"0 B",1749278107,"07/06/2025, 07:35:07");</script>
+<script>customRow("Nekketsu Kouha Kunio-Kun - Bangai Rantou-Hen (J)","Nekketsu%20Kouha%20Kunio-Kun%20-%20Bangai%20Rantou-Hen%20(J)",1,0,"0 B",1749278107,"07/06/2025, 07:35:07");</script>
+<script>customRow("Nemesis (USA)","Nemesis%20(USA)",1,0,"0 B",1749278107,"07/06/2025, 07:35:07");</script>
+<script>customRow("Nettou Garou 2 (J) (S)","Nettou%20Garou%202%20(J)%20(S)",1,0,"0 B",1749278107,"07/06/2025, 07:35:07");</script>
+<script>customRow("Nettou Samurai Spirits (J) (S)","Nettou%20Samurai%20Spirits%20(J)%20(S)",1,0,"0 B",1749278107,"07/06/2025, 07:35:07");</script>
+<script>customRow("Nigel Mansell's World Championship (USA)","Nigel%20Mansell's%20World%20Championship%20(USA)",1,0,"0 B",1749278107,"07/06/2025, 07:35:07");</script>
+<script>customRow("Ninja Boy (USA, Europe)","Ninja%20Boy%20(USA,%20Europe)",1,0,"0 B",1749278107,"07/06/2025, 07:35:07");</script>
+<script>customRow("Ninja Boy 2 (USA, Europe)","Ninja%20Boy%202%20(USA,%20Europe)",1,0,"0 B",1749278107,"07/06/2025, 07:35:07");</script>
+<script>customRow("Ninja Gaiden Shadow (USA)","Ninja%20Gaiden%20Shadow%20(USA)",1,0,"0 B",1749278107,"07/06/2025, 07:35:07");</script>
+<script>customRow("Ninja Taro (USA)","Ninja%20Taro%20(USA)",1,0,"0 B",1749278107,"07/06/2025, 07:35:07");</script>
+<script>customRow("Ninku (J) (S)","Ninku%20(J)%20(S)",1,0,"0 B",1749278107,"07/06/2025, 07:35:07");</script>
+<script>customRow("Nintendo World Cup (USA, Europe)","Nintendo%20World%20Cup%20(USA,%20Europe)",1,0,"0 B",1749278108,"07/06/2025, 07:35:08");</script>
+<script>customRow("Nobunaga's Ambition (USA)","Nobunaga's%20Ambition%20(USA)",1,0,"0 B",1749278108,"07/06/2025, 07:35:08");</script>
+<script>customRow("Oddworld Adventures (USA, Europe)","Oddworld%20Adventures%20(USA,%20Europe)",1,0,"0 B",1749278108,"07/06/2025, 07:35:08");</script>
+<script>customRow("Olympic Summer Games (USA, Europe)","Olympic%20Summer%20Games%20(USA,%20Europe)",1,0,"0 B",1749278108,"07/06/2025, 07:35:08");</script>
+<script>customRow("Operation C (USA)","Operation%20C%20(USA)",1,0,"0 B",1749278108,"07/06/2025, 07:35:08");</script>
+<script>customRow("Othello (Europe)","Othello%20(Europe)",1,0,"0 B",1749278108,"07/06/2025, 07:35:08");</script>
+<script>customRow("Otto's Ottifanten - Baby Bruno's Nightmare (Europe)","Otto's%20Ottifanten%20-%20Baby%20Bruno's%20Nightmare%20(Europe)",1,0,"0 B",1749278108,"07/06/2025, 07:35:08");</script>
+<script>customRow("Out of Gas (USA)","Out%20of%20Gas%20(USA)",1,0,"0 B",1749278108,"07/06/2025, 07:35:08");</script>
+<script>customRow("Pac-Attack (USA)","Pac-Attack%20(USA)",1,0,"0 B",1749278108,"07/06/2025, 07:35:08");</script>
+<script>customRow("Pac-In-Time (USA)","Pac-In-Time%20(USA)",1,0,"0 B",1749278108,"07/06/2025, 07:35:08");</script>
+<script>customRow("Pac-Man (USA)","Pac-Man%20(USA)",1,0,"0 B",1749278108,"07/06/2025, 07:35:08");</script>
+<script>customRow("Pagemaster, The (USA)","Pagemaster,%20The%20(USA)",1,0,"0 B",1749278108,"07/06/2025, 07:35:08");</script>
+<script>customRow("Palamedes (Europe)","Palamedes%20(Europe)",1,0,"0 B",1749278108,"07/06/2025, 07:35:08");</script>
+<script>customRow("Panel Action Bingo (USA)","Panel%20Action%20Bingo%20(USA)",1,0,"0 B",1749278108,"07/06/2025, 07:35:08");</script>
+<script>customRow("Paperboy (USA, Europe)","Paperboy%20(USA,%20Europe)",1,0,"0 B",1749278108,"07/06/2025, 07:35:08");</script>
+<script>customRow("Paperboy 2 (USA, Europe)","Paperboy%202%20(USA,%20Europe)",1,0,"0 B",1749278108,"07/06/2025, 07:35:08");</script>
+<script>customRow("Parasol Stars (Europe)","Parasol%20Stars%20(Europe)",1,0,"0 B",1749278108,"07/06/2025, 07:35:08");</script>
+<script>customRow("Parodius (Europe)","Parodius%20(Europe)",1,0,"0 B",1749278108,"07/06/2025, 07:35:08");</script>
+<script>customRow("Peetan (J)","Peetan%20(J)",1,0,"0 B",1749278108,"07/06/2025, 07:35:08");</script>
+<script>customRow("Penguin Wars (USA)","Penguin%20Wars%20(USA)",1,0,"0 B",1749278108,"07/06/2025, 07:35:08");</script>
+<script>customRow("PGA European Tour (USA, Europe)","PGA%20European%20Tour%20(USA,%20Europe)",1,0,"0 B",1749278108,"07/06/2025, 07:35:08");</script>
+<script>customRow("PGA Tour '96 (USA, Europe)","PGA%20Tour%20'96%20(USA,%20Europe)",1,0,"0 B",1749278108,"07/06/2025, 07:35:08");</script>
+<script>customRow("Phantom Air Mission (Europe)","Phantom%20Air%20Mission%20(Europe)",1,0,"0 B",1749278108,"07/06/2025, 07:35:08");</script>
+<script>customRow("Pierre Le Chef is.. Out to Lunch (Europe)","Pierre%20Le%20Chef%20is..%20Out%20to%20Lunch%20(Europe)",1,0,"0 B",1749278108,"07/06/2025, 07:35:08");</script>
+<script>customRow("Pinball - Revenge of the 'Gator (USA, Europe)","Pinball%20-%20Revenge%20of%20the%20'Gator%20(USA,%20Europe)",1,0,"0 B",1749278108,"07/06/2025, 07:35:08");</script>
+<script>customRow("Pinball Deluxe (Europe)","Pinball%20Deluxe%20(Europe)",1,0,"0 B",1749278108,"07/06/2025, 07:35:08");</script>
+<script>customRow("Pinball Dreams (USA, Europe)","Pinball%20Dreams%20(USA,%20Europe)",1,0,"0 B",1749278108,"07/06/2025, 07:35:08");</script>
+<script>customRow("Pinball Fantasies (USA, Europe)","Pinball%20Fantasies%20(USA,%20Europe)",1,0,"0 B",1749278108,"07/06/2025, 07:35:08");</script>
+<script>customRow("Pinball Mania (Europe)","Pinball%20Mania%20(Europe)",1,0,"0 B",1749278108,"07/06/2025, 07:35:08");</script>
+<script>customRow("Pinocchio (USA)","Pinocchio%20(USA)",1,0,"0 B",1749278108,"07/06/2025, 07:35:08");</script>
+<script>customRow("Pipe Dream (USA)","Pipe%20Dream%20(USA)",1,0,"0 B",1749278108,"07/06/2025, 07:35:08");</script>
+<script>customRow("Pit Fighter (USA, Europe)","Pit%20Fighter%20(USA,%20Europe)",1,0,"0 B",1749278108,"07/06/2025, 07:35:08");</script>
+<script>customRow("Play Action Football (USA)","Play%20Action%20Football%20(USA)",1,0,"0 B",1749278108,"07/06/2025, 07:35:08");</script>
+<script>customRow("Pocahontas (USA, Europe)","Pocahontas%20(USA,%20Europe)",1,0,"0 B",1749278108,"07/06/2025, 07:35:08");</script>
+<script>customRow("Pocket Bomberman (Europe)","Pocket%20Bomberman%20(Europe)",1,0,"0 B",1749278108,"07/06/2025, 07:35:08");</script>
+<script>customRow("Pokemon - Blue Version (USA, Europe)","Pokemon%20-%20Blue%20Version%20(USA,%20Europe)",1,0,"0 B",1749278108,"07/06/2025, 07:35:08");</script>
+<script>customRow("Pokemon - Red Version (USA, Europe)","Pokemon%20-%20Red%20Version%20(USA,%20Europe)",1,0,"0 B",1749278108,"07/06/2025, 07:35:08");</script>
+<script>customRow("Pokemon - Yellow Version - Special Pikachu Edition (USA, Europe)","Pokemon%20-%20Yellow%20Version%20-%20Special%20Pikachu%20Edition%20(USA,%20Europe)",1,0,"0 B",1749278108,"07/06/2025, 07:35:08");</script>
+<script>customRow("Ponta to Hinako no Chindouchuu - Yuutou Hen (J)","Ponta%20to%20Hinako%20no%20Chindouchuu%20-%20Yuutou%20Hen%20(J)",1,0,"0 B",1749278108,"07/06/2025, 07:35:08");</script>
+<script>customRow("Pop'n TwinBee (Europe)","Pop'n%20TwinBee%20(Europe)",1,0,"0 B",1749278108,"07/06/2025, 07:35:08");</script>
+<script>customRow("Popeye 2 (USA)","Popeye%202%20(USA)",1,0,"0 B",1749278108,"07/06/2025, 07:35:08");</script>
+<script>customRow("Populous (Europe)","Populous%20(Europe)",1,0,"0 B",1749278108,"07/06/2025, 07:35:08");</script>
+<script>customRow("Power Mission (USA)","Power%20Mission%20(USA)",1,0,"0 B",1749278108,"07/06/2025, 07:35:08");</script>
+<script>customRow("Power Racer (USA, Europe)","Power%20Racer%20(USA,%20Europe)",1,0,"0 B",1749278108,"07/06/2025, 07:35:08");</script>
+<script>customRow("Prehistorik Man (USA, Europe)","Prehistorik%20Man%20(USA,%20Europe)",1,0,"0 B",1749278108,"07/06/2025, 07:35:08");</script>
+<script>customRow("Primal Rage (USA, Europe)","Primal%20Rage%20(USA,%20Europe)",1,0,"0 B",1749278108,"07/06/2025, 07:35:08");</script>
+<script>customRow("Prince of Persia (USA)","Prince%20of%20Persia%20(USA)",1,0,"0 B",1749278108,"07/06/2025, 07:35:08");</script>
+<script>customRow("Prophecy - The Viking Child (USA)","Prophecy%20-%20The%20Viking%20Child%20(USA)",1,0,"0 B",1749278108,"07/06/2025, 07:35:08");</script>
+<script>customRow("Punisher, The - The Ultimate Payback (USA)","Punisher,%20The%20-%20The%20Ultimate%20Payback%20(USA)",1,0,"0 B",1749278108,"07/06/2025, 07:35:08");</script>
+<script>customRow("Pyramids of Ra (USA)","Pyramids%20of%20Ra%20(USA)",1,0,"0 B",1749278108,"07/06/2025, 07:35:08");</script>
+<script>customRow("Q Billion (USA)","Q%20Billion%20(USA)",1,0,"0 B",1749278108,"07/06/2025, 07:35:08");</script>
+<script>customRow("Q-bert for Game Boy (USA, Europe)","Q-bert%20for%20Game%20Boy%20(USA,%20Europe)",1,0,"0 B",1749278108,"07/06/2025, 07:35:08");</script>
+<script>customRow("Qix (World)","Qix%20(World)",1,0,"0 B",1749278108,"07/06/2025, 07:35:08");</script>
+<script>customRow("Quarth (USA, Europe)","Quarth%20(USA,%20Europe)",1,0,"0 B",1749278108,"07/06/2025, 07:35:08");</script>
+<script>customRow("R-Type (USA, Europe)","R-Type%20(USA,%20Europe)",1,0,"0 B",1749278109,"07/06/2025, 07:35:09");</script>
+<script>customRow("R-Type II (Europe)","R-Type%20II%20(Europe)",1,0,"0 B",1749278109,"07/06/2025, 07:35:09");</script>
+<script>customRow("Race Drivin' (USA, Europe)","Race%20Drivin'%20(USA,%20Europe)",1,0,"0 B",1749278108,"07/06/2025, 07:35:08");</script>
+<script>customRow("Radar Mission (USA, Europe)","Radar%20Mission%20(USA,%20Europe)",1,0,"0 B",1749278108,"07/06/2025, 07:35:08");</script>
+<script>customRow("Raging Fighter (USA, Europe)","Raging%20Fighter%20(USA,%20Europe)",1,0,"0 B",1749278108,"07/06/2025, 07:35:08");</script>
+<script>customRow("Rampart (USA, Europe)","Rampart%20(USA,%20Europe)",1,0,"0 B",1749278108,"07/06/2025, 07:35:08");</script>
+<script>customRow("Real Ghostbusters, The (USA)","Real%20Ghostbusters,%20The%20(USA)",1,0,"0 B",1749278108,"07/06/2025, 07:35:08");</script>
+<script>customRow("Ren & Stimpy Show, The - Space Cadet Adventures (USA)","Ren%20&%20Stimpy%20Show,%20The%20-%20Space%20Cadet%20Adventures%20(USA)",1,0,"0 B",1749278108,"07/06/2025, 07:35:08");</script>
+<script>customRow("Ren & Stimpy Show, The - Veediots! (USA, Europe)","Ren%20&%20Stimpy%20Show,%20The%20-%20Veediots!%20(USA,%20Europe)",1,0,"0 B",1749278108,"07/06/2025, 07:35:08");</script>
+<script>customRow("Reservoir Rat (Europe)","Reservoir%20Rat%20(Europe)",1,0,"0 B",1749278108,"07/06/2025, 07:35:08");</script>
+<script>customRow("Riddick Bowe Boxing (USA)","Riddick%20Bowe%20Boxing%20(USA)",1,0,"0 B",1749278108,"07/06/2025, 07:35:08");</script>
+<script>customRow("Ring Rage (USA)","Ring%20Rage%20(USA)",1,0,"0 B",1749278108,"07/06/2025, 07:35:08");</script>
+<script>customRow("Road Rash (USA, Europe)","Road%20Rash%20(USA,%20Europe)",1,0,"0 B",1749278108,"07/06/2025, 07:35:08");</script>
+<script>customRow("Robin Hood - Prince of Thieves (USA)","Robin%20Hood%20-%20Prince%20of%20Thieves%20(USA)",1,0,"0 B",1749278108,"07/06/2025, 07:35:08");</script>
+<script>customRow("RoboCop (USA, Europe) (Rev A)","RoboCop%20(USA,%20Europe)%20(Rev%20A)",1,0,"0 B",1749278108,"07/06/2025, 07:35:08");</script>
+<script>customRow("RoboCop 2 (USA)","RoboCop%202%20(USA)",1,0,"0 B",1749278108,"07/06/2025, 07:35:08");</script>
+<script>customRow("RoboCop vs. The Terminator (USA)","RoboCop%20vs.%20The%20Terminator%20(USA)",1,0,"0 B",1749278108,"07/06/2025, 07:35:08");</script>
+<script>customRow("Rod Land (Europe)","Rod%20Land%20(Europe)",1,0,"0 B",1749278108,"07/06/2025, 07:35:08");</script>
+<script>customRow("Rolan's Curse (USA)","Rolan's%20Curse%20(USA)",1,0,"0 B",1749278108,"07/06/2025, 07:35:08");</script>
+<script>customRow("Rolan's Curse II (USA)","Rolan's%20Curse%20II%20(USA)",1,0,"0 B",1749278108,"07/06/2025, 07:35:08");</script>
+<script>customRow("Rugrats Movie, The (USA)","Rugrats%20Movie,%20The%20(USA)",1,0,"0 B",1749278109,"07/06/2025, 07:35:09");</script>
+<script>customRow("Sagaia (J)","Sagaia%20(J)",1,0,"0 B",1749278109,"07/06/2025, 07:35:09");</script>
+<script>customRow("Samurai Shodown (USA, Europe)","Samurai%20Shodown%20(USA,%20Europe)",1,0,"0 B",1749278109,"07/06/2025, 07:35:09");</script>
+<script>customRow("SD Hiryuu no Ken Gaiden (J) (S)","SD%20Hiryuu%20no%20Ken%20Gaiden%20(J)%20(S)",1,0,"0 B",1749278109,"07/06/2025, 07:35:09");</script>
+<script>customRow("SD Hiryuu no Ken Gaiden 2 (J) (S)","SD%20Hiryuu%20no%20Ken%20Gaiden%202%20(J)%20(S)",1,0,"0 B",1749278109,"07/06/2025, 07:35:09");</script>
+<script>customRow("Sea Battle (Europe)","Sea%20Battle%20(Europe)",1,0,"0 B",1749278109,"07/06/2025, 07:35:09");</script>
+<script>customRow("SeaQuest DSV (USA, Europe)","SeaQuest%20DSV%20(USA,%20Europe)",1,0,"0 B",1749278109,"07/06/2025, 07:35:09");</script>
+<script>customRow("Sensible Soccer - European Champions (Europe)","Sensible%20Soccer%20-%20European%20ChamEuropepions%20(Europe)",1,0,"0 B",1749278109,"07/06/2025, 07:35:09");</script>
+<script>customRow("Serpent (USA)","Serpent%20(USA)",1,0,"0 B",1749278109,"07/06/2025, 07:35:09");</script>
+<script>customRow("Shanghai (USA)","Shanghai%20(USA)",1,0,"0 B",1749278109,"07/06/2025, 07:35:09");</script>
+<script>customRow("Shaq Fu (USA)","Shaq%20Fu%20(USA)",1,0,"0 B",1749278109,"07/06/2025, 07:35:09");</script>
+<script>customRow("Side Pocket (World)","Side%20Pocket%20(World)",1,0,"0 B",1749278109,"07/06/2025, 07:35:09");</script>
+<script>customRow("Simpsons Itchy & Scratchy, The - Miniature Golf Madness (USA, Europe)","Simpsons%20Itchy%20&%20Scratchy,%20The%20-%20Miniature%20Golf%20Madness%20(USA,%20Europe)",1,0,"0 B",1749278109,"07/06/2025, 07:35:09");</script>
+<script>customRow("Simpsons, The - Bart & the Beanstalk (USA, Europe)","Simpsons,%20The%20-%20Bart%20&%20the%20Beanstalk%20(USA,%20Europe)",1,0,"0 B",1749278109,"07/06/2025, 07:35:09");</script>
+<script>customRow("Simpsons, The - Bart vs. the Juggernauts (USA, Europe)","Simpsons,%20The%20-%20Bart%20vs.%20the%20Juggernauts%20(USA,%20Europe)",1,0,"0 B",1749278109,"07/06/2025, 07:35:09");</script>
+<script>customRow("Skate or Die - Bad 'N Rad (USA)","Skate%20or%20Die%20-%20Bad%20'N%20Rad%20(USA)",1,0,"0 B",1749278109,"07/06/2025, 07:35:09");</script>
+<script>customRow("Skate or Die - Tour de Thrash (USA)","Skate%20or%20Die%20-%20Tour%20de%20Thrash%20(USA)",1,0,"0 B",1749278109,"07/06/2025, 07:35:09");</script>
+<script>customRow("Small Soldiers (USA, Europe)","Small%20Soldiers%20(USA,%20Europe)",1,0,"0 B",1749278109,"07/06/2025, 07:35:09");</script>
+<script>customRow("Smurfs Nightmare, The (Europe)","Smurfs%20Nightmare,%20The%20(Europe)",1,0,"0 B",1749278109,"07/06/2025, 07:35:09");</script>
+<script>customRow("Smurfs Travel the World, The (Europe)","Smurfs%20Travel%20the%20World,%20The%20(Europe)",1,0,"0 B",1749278109,"07/06/2025, 07:35:09");</script>
+<script>customRow("Smurfs, The (USA, Europe) (Rev A)","Smurfs,%20The%20(USA,%20Europe)%20(Rev%20A)",1,0,"0 B",1749278109,"07/06/2025, 07:35:09");</script>
+<script>customRow("Sneaky Snakes (USA, Europe)","Sneaky%20Snakes%20(USA,%20Europe)",1,0,"0 B",1749278109,"07/06/2025, 07:35:09");</script>
+<script>customRow("Snoopy - Magic Show (USA, Europe)","Snoopy%20-%20Magic%20Show%20(USA,%20Europe)",1,0,"0 B",1749278109,"07/06/2025, 07:35:09");</script>
+<script>customRow("Snow Brothers (USA)","Snow%20Brothers%20(USA)",1,0,"0 B",1749278109,"07/06/2025, 07:35:09");</script>
+<script>customRow("Soccer Mania (Japan, USA)","Soccer%20Mania%20(Japan,%20USA)",1,0,"0 B",1749278109,"07/06/2025, 07:35:09");</script>
+<script>customRow("SolarStriker (World)","SolarStriker%20(World)",1,0,"0 B",1749278109,"07/06/2025, 07:35:09");</script>
+<script>customRow("Solomon's Club (USA)","Solomon's%20Club%20(USA)",1,0,"0 B",1749278109,"07/06/2025, 07:35:09");</script>
+<script>customRow("Space Invaders (USA)","Space%20Invaders%20(USA)",1,0,"0 B",1749278109,"07/06/2025, 07:35:09");</script>
+<script>customRow("Spanky's Quest (USA)","Spanky's%20Quest%20(USA)",1,0,"0 B",1749278109,"07/06/2025, 07:35:09");</script>
+<script>customRow("Speedball 2 - Brutal Deluxe (USA, Europe)","Speedball%202%20-%20Brutal%20Deluxe%20(USA,%20Europe)",1,0,"0 B",1749278109,"07/06/2025, 07:35:09");</script>
+<script>customRow("Speedy Gonzales (USA, Europe)","Speedy%20Gonzales%20(USA,%20Europe)",1,0,"0 B",1749278109,"07/06/2025, 07:35:09");</script>
+<script>customRow("Spider-Man 2 (USA, Europe)","Spider-Man%202%20(USA,%20Europe)",1,0,"0 B",1749278109,"07/06/2025, 07:35:09");</script>
+<script>customRow("Spider-Man 3 - Invasion of the Spider-Slayers (USA, Europe)","Spider-Man%203%20-%20Invasion%20of%20the%20Spider-Slayers%20(USA,%20Europe)",1,0,"0 B",1749278109,"07/06/2025, 07:35:09");</script>
+<script>customRow("Spider-Man-X-Men (USA, Europe)","Spider-Man-X-Men%20(USA,%20Europe)",1,0,"0 B",1749278109,"07/06/2025, 07:35:09");</script>
+<script>customRow("Spirou (Europe)","Spirou%20(Europe)",1,0,"0 B",1749278109,"07/06/2025, 07:35:09");</script>
+<script>customRow("Splitz (Europe)","Splitz%20(Europe)",1,0,"0 B",1749278109,"07/06/2025, 07:35:09");</script>
+<script>customRow("Sports Illustrated for Kids - The Ultimate Triple Dare! (USA)","Sports%20Illustrated%20for%20Kids%20-%20The%20Ultimate%20Triple%20Dare!%20(USA)",1,0,"0 B",1749278109,"07/06/2025, 07:35:09");</script>
+<script>customRow("Spot - The Cool Adventure (USA)","Spot%20-%20The%20Cool%20Adventure%20(USA)",1,0,"0 B",1749278109,"07/06/2025, 07:35:09");</script>
+<script>customRow("Spot (USA)","Spot%20(USA)",1,0,"0 B",1749278109,"07/06/2025, 07:35:09");</script>
+<script>customRow("Spud's Adventure (USA)","Spud's%20Adventure%20(USA)",1,0,"0 B",1749278109,"07/06/2025, 07:35:09");</script>
+<script>customRow("Spy vs Spy - Operation Boobytrap (USA)","Spy%20vs%20Spy%20-%20Operation%20Boobytrap%20(USA)",1,0,"0 B",1749278109,"07/06/2025, 07:35:09");</script>
+<script>customRow("Square Deal - The Game of Two-Dimensional Poker (USA)","Square%20Deal%20-%20The%20Game%20of%20Two-Dimensional%20Poker%20(USA)",1,0,"0 B",1749278109,"07/06/2025, 07:35:09");</script>
+<script>customRow("Star Hawk (Europe)","Star%20Hawk%20(Europe)",1,0,"0 B",1749278109,"07/06/2025, 07:35:09");</script>
+<script>customRow("Star Trek - 25th Anniversary (USA, Europe)","Star%20Trek%20-%2025th%20Anniversary%20(USA,%20Europe)",1,0,"0 B",1749278109,"07/06/2025, 07:35:09");</script>
+<script>customRow("Star Trek - The Next Generation (USA, Europe)","Star%20Trek%20-%20The%20Next%20Generation%20(USA,%20Europe)",1,0,"0 B",1749278109,"07/06/2025, 07:35:09");</script>
+<script>customRow("Star Trek Generations - Beyond the Nexus (USA)","Star%20Trek%20Generations%20-%20Beyond%20the%20Nexus%20(USA)",1,0,"0 B",1749278109,"07/06/2025, 07:35:09");</script>
+<script>customRow("Star Wars - The Empire Strikes Back (USA)","Star%20Wars%20-%20The%20Empire%20Strikes%20Back%20(USA)",1,0,"0 B",1749278109,"07/06/2025, 07:35:09");</script>
+<script>customRow("Star Wars (USA, Europe) (Rev A)","Star%20Wars%20(USA,%20Europe)%20(Rev%20A)",1,0,"0 B",1749278109,"07/06/2025, 07:35:09");</script>
+<script>customRow("Stargate (USA, Europe)","Stargate%20(USA,%20Europe)",1,0,"0 B",1749278109,"07/06/2025, 07:35:09");</script>
+<script>customRow("Stop That Roach! (USA)","Stop%20That%20Roach!%20(USA)",1,0,"0 B",1749278109,"07/06/2025, 07:35:09");</script>
+<script>customRow("Street Fighter II (USA, Europe) (Rev A)","Street%20Fighter%20II%20(USA,%20Europe)%20(Rev%20A)",1,0,"0 B",1749278109,"07/06/2025, 07:35:09");</script>
+<script>customRow("Street Racer (USA, Europe)","Street%20Racer%20(USA,%20Europe)",1,0,"0 B",1749278109,"07/06/2025, 07:35:09");</script>
+<script>customRow("Sumo Fighter (USA)","Sumo%20Fighter%20(USA)",1,0,"0 B",1749278109,"07/06/2025, 07:35:09");</script>
+<script>customRow("Sunsoft Grand Prix (Europe)","Sunsoft%20Grand%20Prix%20(Europe)",1,0,"0 B",1749278109,"07/06/2025, 07:35:09");</script>
+<script>customRow("Super Battletank - War in the Gulf (USA)","Super%20Battletank%20-%20War%20in%20the%20Gulf%20(USA)",1,0,"0 B",1749278109,"07/06/2025, 07:35:09");</script>
+<script>customRow("Super Black Bass (USA)","Super%20Black%20Bass%20(USA)",1,0,"0 B",1749278109,"07/06/2025, 07:35:09");</script>
+<script>customRow("Super Chase H.Q. (USA, Europe)","Super%20Chase%20H.Q.%20(USA,%20Europe)",1,0,"0 B",1749278109,"07/06/2025, 07:35:09");</script>
+<script>customRow("Super Hunchback (USA)","Super%20Hunchback%20(USA)",1,0,"0 B",1749278109,"07/06/2025, 07:35:09");</script>
+<script>customRow("Super James Pond (Europe)","Super%20James%20Pond%20(Europe)",1,0,"0 B",1749278109,"07/06/2025, 07:35:09");</script>
+<script>customRow("Super Kick Off (Europe)","Super%20Kick%20Off%20(Europe)",1,0,"0 B",1749278109,"07/06/2025, 07:35:09");</script>
+<script>customRow("Super Mario Land (World) (Rev A)","Super%20Mario%20Land%20(World)%20(Rev%20A)",1,0,"0 B",1756367826,"28/08/2025, 08:57:06");</script>
+<script>customRow("Super Mario Land 2 - 6 Golden Coins (USA, Europe) (Rev B)","Super%20Mario%20Land%202%20-%206%20Golden%20Coins%20(USA,%20Europe)%20(Rev%20B)",1,0,"0 B",1749278109,"07/06/2025, 07:35:09");</script>
+<script>customRow("Super Off Road (USA)","Super%20Off%20Road%20(USA)",1,0,"0 B",1749278109,"07/06/2025, 07:35:09");</script>
+<script>customRow("Super R.C. Pro-Am (USA, Europe)","Super%20R.C.%20Pro-Am%20(USA,%20Europe)",1,0,"0 B",1749278109,"07/06/2025, 07:35:09");</script>
+<script>customRow("Super Scrabble (USA)","Super%20Scrabble%20(USA)",1,0,"0 B",1749278109,"07/06/2025, 07:35:09");</script>
+<script>customRow("Super Star Wars - Return of the Jedi (USA, Europe)","Super%20Star%20Wars%20-%20Return%20of%20the%20Jedi%20(USA,%20Europe)",1,0,"0 B",1749278109,"07/06/2025, 07:35:09");</script>
+<script>customRow("Superman (USA, Europe)","Superman%20(USA,%20Europe)",1,0,"0 B",1749278109,"07/06/2025, 07:35:09");</script>
+<script>customRow("Swamp Thing (USA, Europe)","Swamp%20Thing%20(USA,%20Europe)",1,0,"0 B",1749278109,"07/06/2025, 07:35:09");</script>
+<script>customRow("Sword of Hope II, The (USA)","Sword%20of%20Hope%20II,%20The%20(USA)",1,0,"0 B",1749278109,"07/06/2025, 07:35:09");</script>
+<script>customRow("Sword of Hope, The (USA)","Sword%20of%20Hope,%20The%20(USA)",1,0,"0 B",1749278109,"07/06/2025, 07:35:09");</script>
+<script>customRow("T2 - The Arcade Game (USA, Europe)","T2%20-%20The%20Arcade%20Game%20(USA,%20Europe)",1,0,"0 B",1749278110,"07/06/2025, 07:35:10");</script>
+<script>customRow("Tail 'Gator (USA, Europe)","Tail%20'Gator%20(USA,%20Europe)",1,0,"0 B",1749278110,"07/06/2025, 07:35:10");</script>
+<script>customRow("Taiyou no Yuusha - Firebird GB (J)","Taiyou%20no%20Yuusha%20-%20Firebird%20GB%20(J)",1,0,"0 B",1749278110,"07/06/2025, 07:35:10");</script>
+<script>customRow("TaleSpin (USA)","TaleSpin%20(USA)",1,0,"0 B",1749278110,"07/06/2025, 07:35:10");</script>
+<script>customRow("Tamagotchi (USA, Europe)","Tamagotchi%20(USA,%20Europe)",1,0,"0 B",1749278110,"07/06/2025, 07:35:10");</script>
+<script>customRow("Tarzan (USA, Europe)","Tarzan%20(USA,%20Europe)",1,0,"0 B",1749278110,"07/06/2025, 07:35:10");</script>
+<script>customRow("Tasmania Story (USA)","Tasmania%20Story%20(USA)",1,0,"0 B",1749278110,"07/06/2025, 07:35:10");</script>
+<script>customRow("Taz-Mania (USA, Europe)","Taz-Mania%20(USA,%20Europe)",1,0,"0 B",1749278110,"07/06/2025, 07:35:10");</script>
+<script>customRow("Taz-Mania 2 (USA)","Taz-Mania%202%20(USA)",1,0,"0 B",1749278110,"07/06/2025, 07:35:10");</script>
+<script>customRow("Tecmo Bowl (USA)","Tecmo%20Bowl%20(USA)",1,0,"0 B",1749278110,"07/06/2025, 07:35:10");</script>
+<script>customRow("Teenage Mutant Ninja Turtles - Fall of the Foot Clan (USA)","Teenage%20Mutant%20Ninja%20Turtles%20-%20Fall%20of%20the%20Foot%20Clan%20(USA)",1,0,"0 B",1749278110,"07/06/2025, 07:35:10");</script>
+<script>customRow("Teenage Mutant Ninja Turtles II - Back from the Sewers (USA)","Teenage%20Mutant%20Ninja%20Turtles%20II%20-%20Back%20from%20the%20Sewers%20(USA)",1,0,"0 B",1749278110,"07/06/2025, 07:35:10");</script>
+<script>customRow("Teenage Mutant Ninja Turtles III - Radical Rescue (USA)","Teenage%20Mutant%20Ninja%20Turtles%20III%20-%20Radical%20Rescue%20(USA)",1,0,"0 B",1749278110,"07/06/2025, 07:35:10");</script>
+<script>customRow("Tekkyu Fight! - The Great Battle Gaiden (J)","Tekkyu%20Fight!%20-%20The%20Great%20Battle%20Gaiden%20(J)",1,0,"0 B",1749278110,"07/06/2025, 07:35:10");</script>
+<script>customRow("Tenjin Kaisen - Mercenary Force (J)","Tenjin%20Kaisen%20-%20Mercenary%20Force%20(J)",1,0,"0 B",1749278110,"07/06/2025, 07:35:10");</script>
+<script>customRow("Tenjin Kaisen 2 (J)","Tenjin%20Kaisen%202%20(J)",1,0,"0 B",1749278110,"07/06/2025, 07:35:10");</script>
+<script>customRow("Tennis (World)","Tennis%20(World)",1,0,"0 B",1749278110,"07/06/2025, 07:35:10");</script>
+<script>customRow("Terminator 2 - Judgment Day (USA, Europe)","Terminator%202%20-%20Judgment%20Day%20(USA,%20Europe)",1,0,"0 B",1749278110,"07/06/2025, 07:35:10");</script>
+<script>customRow("Tesserae (USA)","Tesserae%20(USA)",1,0,"0 B",1749278110,"07/06/2025, 07:35:10");</script>
+<script>customRow("Tetris (World) (Rev A)","Tetris%20(World)%20(Rev%20A)",1,0,"0 B",1754908942,"11/08/2025, 11:42:22");</script>
+<script>customRow("Tetris 2 (USA, Europe)","Tetris%202%20(USA,%20Europe)",1,0,"0 B",1749278110,"07/06/2025, 07:35:10");</script>
+<script>customRow("Tetris Attack (USA, Europe) (Rev A)","Tetris%20Attack%20(USA,%20Europe)%20(Rev%20A)",1,0,"0 B",1749278110,"07/06/2025, 07:35:10");</script>
+<script>customRow("Tetris Blast (USA, Europe)","Tetris%20Blast%20(USA,%20Europe)",1,0,"0 B",1749278110,"07/06/2025, 07:35:10");</script>
+<script>customRow("Tetris Plus (USA, Europe)","Tetris%20Plus%20(USA,%20Europe)",1,0,"0 B",1749278110,"07/06/2025, 07:35:10");</script>
+<script>customRow("Tintin - Prisoners of the Sun (Europe)","Tintin%20-%20Prisoners%20of%20the%20Sun%20(Europe)",1,0,"0 B",1749278110,"07/06/2025, 07:35:10");</script>
+<script>customRow("Tintin in Tibet (Europe)","Tintin%20in%20Tibet%20(Europe)",1,0,"0 B",1749278110,"07/06/2025, 07:35:10");</script>
+<script>customRow("Tiny Toon Adventures - Babs' Big Break (USA, Europe)","Tiny%20Toon%20Adventures%20-%20Babs'%20Big%20Break%20(USA,%20Europe)",1,0,"0 B",1749278110,"07/06/2025, 07:35:10");</script>
+<script>customRow("Tiny Toon Adventures - Montana's Movie Madness (USA, Europe)","Tiny%20Toon%20Adventures%20-%20Montana's%20Movie%20Madness%20(USA,%20Europe)",1,0,"0 B",1749278110,"07/06/2025, 07:35:10");</script>
+<script>customRow("Tiny Toon Adventures - Wacky Sports (USA)","Tiny%20Toon%20Adventures%20-%20Wacky%20Sports%20(USA)",1,0,"0 B",1749278110,"07/06/2025, 07:35:10");</script>
+<script>customRow("Tip Off (Europe)","Tip%20Off%20(Europe)",1,0,"0 B",1749278110,"07/06/2025, 07:35:10");</script>
+<script>customRow("Titus the Fox to Marrakech and Back (USA, Europe)","Titus%20the%20Fox%20to%20Marrakech%20and%20Back%20(USA,%20Europe)",1,0,"0 B",1749278110,"07/06/2025, 07:35:10");</script>
+<script>customRow("Tom & Jerry (USA, Europe)","Tom%20&%20Jerry%20(USA,%20Europe)",1,0,"0 B",1749278110,"07/06/2025, 07:35:10");</script>
+<script>customRow("Tom and Jerry - Frantic Antics! (USA, Europe)","Tom%20and%20Jerry%20-%20Frantic%20Antics!%20(USA,%20Europe)",1,0,"0 B",1749278110,"07/06/2025, 07:35:10");</script>
+<script>customRow("Top Gun - Guts & Glory (USA, Europe)","Top%20Gun%20-%20Guts%20&%20Glory%20(USA,%20Europe)",1,0,"0 B",1749278110,"07/06/2025, 07:35:10");</script>
+<script>customRow("Top Rank Tennis (USA)","Top%20Rank%20Tennis%20(USA)",1,0,"0 B",1749278110,"07/06/2025, 07:35:10");</script>
+<script>customRow("Torpedo Range (USA)","Torpedo%20Range%20(USA)",1,0,"0 B",1749278110,"07/06/2025, 07:35:10");</script>
+<script>customRow("Total Carnage (USA, Europe)","Total%20Carnage%20(USA,%20Europe)",1,0,"0 B",1749278110,"07/06/2025, 07:35:10");</script>
+<script>customRow("Toxic Crusaders (USA)","Toxic%20Crusaders%20(USA)",1,0,"0 B",1749278110,"07/06/2025, 07:35:10");</script>
+<script>customRow("Toy Story (USA) (Rev A)","Toy%20Story%20(USA)%20(Rev%20A)",1,0,"0 B",1749278110,"07/06/2025, 07:35:10");</script>
+<script>customRow("Track & Field (USA, Europe)","Track%20&%20Field%20(USA,%20Europe)",1,0,"0 B",1749278110,"07/06/2025, 07:35:10");</script>
+<script>customRow("Track Meet (USA, Europe)","Track%20Meet%20(USA,%20Europe)",1,0,"0 B",1749278110,"07/06/2025, 07:35:10");</script>
+<script>customRow("Trax (USA, Europe)","Trax%20(USA,%20Europe)",1,0,"0 B",1749278110,"07/06/2025, 07:35:10");</script>
+<script>customRow("Trip World (Europe)","Trip%20World%20(Europe)",1,0,"0 B",1749278110,"07/06/2025, 07:35:10");</script>
+<script>customRow("True Lies (USA, Europe)","True%20Lies%20(USA,%20Europe)",1,0,"0 B",1749278110,"07/06/2025, 07:35:10");</script>
+<script>customRow("Tumble Pop (USA, Europe)","Tumble%20Pop%20(USA,%20Europe)",1,0,"0 B",1749278110,"07/06/2025, 07:35:10");</script>
+<script>customRow("Turn and Burn (USA)","Turn%20and%20Burn%20(USA)",1,0,"0 B",1749278110,"07/06/2025, 07:35:10");</script>
+<script>customRow("Turok - Battle of the Bionosaurs (USA, Europe)","Turok%20-%20Battle%20of%20the%20Bionosaurs%20(USA,%20Europe)",1,0,"0 B",1749278110,"07/06/2025, 07:35:10");</script>
+<script>customRow("Turrican (USA, Europe)","Turrican%20(USA,%20Europe)",1,0,"0 B",1749278110,"07/06/2025, 07:35:10");</script>
+<script>customRow("Ultima - Runes of Virtue (USA)","Ultima%20-%20Runes%20of%20Virtue%20(USA)",1,0,"0 B",1749278110,"07/06/2025, 07:35:10");</script>
+<script>customRow("Ultima - Runes of Virtue II (USA)","Ultima%20-%20Runes%20of%20Virtue%20II%20(USA)",1,0,"0 B",1749278110,"07/06/2025, 07:35:10");</script>
+<script>customRow("Universal Soldier (USA, Europe)","Universal%20Soldier%20(USA,%20Europe)",1,0,"0 B",1749278110,"07/06/2025, 07:35:10");</script>
+<script>customRow("Urban Strike (USA, Europe)","Urban%20Strike%20(USA,%20Europe)",1,0,"0 B",1749278110,"07/06/2025, 07:35:10");</script>
+<script>customRow("V-Rally - Championship Edition (Europe)","V-Rally%20-%20Championship%20Edition%20(Europe)",1,0,"0 B",1749278110,"07/06/2025, 07:35:10");</script>
+<script>customRow("Versus Hero - Kakutou Ou heno Michi (J)","Versus%20Hero%20-%20Kakutou%20Ou%20heno%20Michi%20(J)",1,0,"0 B",1749278110,"07/06/2025, 07:35:10");</script>
+<script>customRow("Wario Blast Featuring Bomberman! (USA, Europe)","Wario%20Blast%20Featuring%20Bomberman!%20(USA,%20Europe)",1,0,"0 B",1749278110,"07/06/2025, 07:35:10");</script>
+<script>customRow("Wario Land - Super Mario Land 3 (World)","Wario%20Land%20-%20Super%20Mario%20Land%203%20(World)",1,0,"0 B",1749278110,"07/06/2025, 07:35:10");</script>
+<script>customRow("Wario Land II (USA, Europe)","Wario%20Land%20II%20(USA,%20Europe)",1,0,"0 B",1749278110,"07/06/2025, 07:35:10");</script>
+<script>customRow("Water World (Europe)","Water%20World%20(Europe)",1,0,"0 B",1749278110,"07/06/2025, 07:35:10");</script>
+<script>customRow("Wave Race (USA, Europe)","Wave%20Race%20(USA,%20Europe)",1,0,"0 B",1749278110,"07/06/2025, 07:35:10");</script>
+<script>customRow("Wayne's World (USA)","Wayne's%20World%20(USA)",1,0,"0 B",1749278110,"07/06/2025, 07:35:10");</script>
+<script>customRow("WCW Main Event (USA, Europe)","WCW%20Main%20Event%20(USA,%20Europe)",1,0,"0 B",1749278110,"07/06/2025, 07:35:10");</script>
+<script>customRow("We're Back! - A Dinosaur's Story (USA, Europe)","We're%20Back!%20-%20A%20Dinosaur's%20Story%20(USA,%20Europe)",1,0,"0 B",1749278110,"07/06/2025, 07:35:10");</script>
+<script>customRow("Wheel of Fortune (USA)","Wheel%20of%20Fortune%20(USA)",1,0,"0 B",1749278110,"07/06/2025, 07:35:10");</script>
+<script>customRow("Who Framed Roger Rabbit (USA)","Who%20Framed%20Roger%20Rabbit%20(USA)",1,0,"0 B",1749278110,"07/06/2025, 07:35:10");</script>
+<script>customRow("Wild Snake (USA)","Wild%20Snake%20(USA)",1,0,"0 B",1749278110,"07/06/2025, 07:35:10");</script>
+<script>customRow("Wizards & Warriors Chapter X - The Fortress of Fear (USA, Europe)","Wizards%20&%20Warriors%20Chapter%20X%20-%20The%20Fortress%20of%20Fear%20(USA,%20Europe)",1,0,"0 B",1749278110,"07/06/2025, 07:35:10");</script>
+<script>customRow("Wordtris (USA)","Wordtris%20(USA)",1,0,"0 B",1749278110,"07/06/2025, 07:35:10");</script>
+<script>customRow("WordZap (USA)","WordZap%20(USA)",1,0,"0 B",1749278110,"07/06/2025, 07:35:10");</script>
+<script>customRow("World Beach Volley - 1992 GB Cup (Europe)","World%20Beach%20Volley%20-%201992%20GB%20Cup%20(Europe)",1,0,"0 B",1749278110,"07/06/2025, 07:35:10");</script>
+<script>customRow("World Bowling (USA)","World%20Bowling%20(USA)",1,0,"0 B",1749278111,"07/06/2025, 07:35:11");</script>
+<script>customRow("World Circuit Series (USA)","World%20Circuit%20Series%20(USA)",1,0,"0 B",1749278111,"07/06/2025, 07:35:11");</script>
+<script>customRow("World Cup 98 (USA, Europe)","World%20Cup%2098%20(USA,%20Europe)",1,0,"0 B",1749278111,"07/06/2025, 07:35:11");</script>
+<script>customRow("World Cup USA '94 (Europe)","World%20Cup%20USA%20'94%20(Europe)",1,0,"0 B",1749278111,"07/06/2025, 07:35:11");</script>
+<script>customRow("World Heroes 2 Jet (USA, Europe)","World%20Heroes%202%20Jet%20(USA,%20Europe)",1,0,"0 B",1749278111,"07/06/2025, 07:35:11");</script>
+<script>customRow("Worms (Europe)","Worms%20(Europe)",1,0,"0 B",1749278111,"07/06/2025, 07:35:11");</script>
+<script>customRow("WWF King of the Ring (USA, Europe)","WWF%20King%20of%20the%20Ring%20(USA,%20Europe)",1,0,"0 B",1749278111,"07/06/2025, 07:35:11");</script>
+<script>customRow("WWF Raw (USA, Europe)","WWF%20Raw%20(USA,%20Europe)",1,0,"0 B",1749278111,"07/06/2025, 07:35:11");</script>
+<script>customRow("WWF Superstars (USA, Europe)","WWF%20Superstars%20(USA,%20Europe)",1,0,"0 B",1749278111,"07/06/2025, 07:35:11");</script>
+<script>customRow("WWF Superstars 2 (USA, Europe)","WWF%20Superstars%202%20(USA,%20Europe)",1,0,"0 B",1749278111,"07/06/2025, 07:35:11");</script>
+<script>customRow("WWF War Zone (USA, Europe)","WWF%20War%20Zone%20(USA,%20Europe)",1,0,"0 B",1749278111,"07/06/2025, 07:35:11");</script>
+<script>customRow("Xenon 2 - Megablast (USA, Europe)","Xenon%202%20-%20Megablast%20(USA,%20Europe)",1,0,"0 B",1749278111,"07/06/2025, 07:35:11");</script>
+<script>customRow("XVII Olympic Winter Games, The - Lillehammer 1994 (USA)","XVII%20Olympic%20Winter%20Games,%20The%20-%20Lillehammer%201994%20(USA)",1,0,"0 B",1749278111,"07/06/2025, 07:35:11");</script>
+<script>customRow("Yogi Bear in Yogi Bear's Goldrush (USA)","Yogi%20Bear%20in%20Yogi%20Bear's%20Goldrush%20(USA)",1,0,"0 B",1749278111,"07/06/2025, 07:35:11");</script>
+<script>customRow("Yoshi (USA)","Yoshi%20(USA)",1,0,"0 B",1749278111,"07/06/2025, 07:35:11");</script>
+<script>customRow("Yoshi's Cookie (USA, Europe)","Yoshi's%20Cookie%20(USA,%20Europe)",1,0,"0 B",1749278111,"07/06/2025, 07:35:11");</script>
+<script>customRow("Yuu Yuu Hakusho - Ankoku Bujutsu Kai (J)","Yuu%20Yuu%20Hakusho%20-%20Ankoku%20Bujutsu%20Kai%20(J)",1,0,"0 B",1749278111,"07/06/2025, 07:35:11");</script>
+<script>customRow("Yuu Yuu Hakusho - Makai no Tobira (J)","Yuu%20Yuu%20Hakusho%20-%20Makai%20no%20Tobira%20(J)",1,0,"0 B",1749278111,"07/06/2025, 07:35:11");</script>
+<script>customRow("Yuu Yuu Hakusho - Makai Touitsu (J) (S)","Yuu%20Yuu%20Hakusho%20-%20Makai%20Touitsu%20(J)%20(S)",1,0,"0 B",1749278111,"07/06/2025, 07:35:11");</script>
+<script>customRow("Yuu Yuu Hakusho (J)","Yuu%20Yuu%20Hakusho%20(J)",1,0,"0 B",1749278111,"07/06/2025, 07:35:11");</script>
+<script>customRow("Zen - Intergalactic Ninja (USA)","Zen%20-%20Intergalactic%20Ninja%20(USA)",1,0,"0 B",1749278111,"07/06/2025, 07:35:11");</script>
+<script>customRow("Zoids Densetsu (J)","Zoids%20Densetsu%20(J)",1,0,"0 B",1749278111,"07/06/2025, 07:35:11");</script>
+<script>customRow("Zool (USA)","Zool%20(USA)",1,0,"0 B",1749278111,"07/06/2025, 07:35:11");</script>
+<script>customRow("Zoop (USA, Europe)","Zoop%20(USA,%20Europe)",1,0,"0 B",1749278111,"07/06/2025, 07:35:11");</script>
