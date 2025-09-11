@@ -1,0 +1,261 @@
+
+
+<!DOCTYPE html>
+
+<html dir="ltr" lang="en">
+
+<head>
+<meta charset="utf-8">
+<meta name="color-scheme" content="light dark">
+<meta name="google" value="notranslate">
+
+<script>
+function addRow(name, url, isdir,
+    size, size_string, date_modified, date_modified_string) {
+  if (name == "." || name == "..")
+    return;
+
+  var root = document.location.pathname.replace(/[^\/]+\.html$/, '');
+
+  var tbody = document.getElementById("tbody");
+  var row = document.createElement("tr");
+  var file_cell = document.createElement("td");
+  var link = document.createElement("a");
+
+  link.className = isdir ? "icon dir" : "icon file";
+
+  if (isdir) {
+    name = name + "/";
+    url = url + "/";
+    size = 0;
+    size_string = "";
+  } else {
+    link.draggable = "true";
+    link.addEventListener("dragstart", onDragStart, false);
+  }
+  link.innerText = name;
+  link.href = root + url;
+
+  file_cell.dataset.value = name;
+  file_cell.appendChild(link);
+
+  row.appendChild(file_cell);
+  row.appendChild(createCell(size, size_string));
+  row.appendChild(createCell(date_modified, date_modified_string));
+
+  tbody.appendChild(row);
+}
+
+function onDragStart(e) {
+  var el = e.srcElement;
+  var name = el.innerText.replace(":", "");
+  var download_url_data = "application/octet-stream:" + name + ":" + el.href;
+  e.dataTransfer.setData("DownloadURL", download_url_data);
+  e.dataTransfer.effectAllowed = "copy";
+}
+
+function createCell(value, text) {
+  var cell = document.createElement("td");
+  cell.setAttribute("class", "detailsColumn");
+  cell.dataset.value = value;
+  cell.innerText = text;
+  return cell;
+}
+
+function start(location) {
+  var header = document.getElementById("header");
+  header.innerText = header.innerText.replace("LOCATION", location);
+
+  document.getElementById("title").innerText = header.innerText;
+}
+
+function onHasParentDirectory() {
+  var box = document.getElementById("parentDirLinkBox");
+  box.style.display = "block";
+
+  var root = document.location.pathname;
+  if (!root.endsWith("/"))
+    root += "/";
+
+  var link = document.getElementById("parentDirLink");
+  link.href = root + "..";
+}
+
+function sortTable(column) {
+  var theader = document.getElementById("theader");
+  var oldOrder = theader.cells[column].dataset.order || '1';
+  oldOrder = parseInt(oldOrder, 10)
+  var newOrder = 0 - oldOrder;
+  theader.cells[column].dataset.order = newOrder;
+
+  var tbody = document.getElementById("tbody");
+  var rows = tbody.rows;
+  var list = [], i;
+  for (i = 0; i < rows.length; i++) {
+    list.push(rows[i]);
+  }
+
+  list.sort(function(row1, row2) {
+    var a = row1.cells[column].dataset.value;
+    var b = row2.cells[column].dataset.value;
+    if (column) {
+      a = parseInt(a, 10);
+      b = parseInt(b, 10);
+      return a > b ? newOrder : a < b ? oldOrder : 0;
+    }
+
+    // Column 0 is text.
+    if (a > b)
+      return newOrder;
+    if (a < b)
+      return oldOrder;
+    return 0;
+  });
+
+  // Appending an existing child again just moves it.
+  for (i = 0; i < list.length; i++) {
+    tbody.appendChild(list[i]);
+  }
+}
+
+// Add event handlers to column headers.
+function addHandlers(element, column) {
+  element.onclick = (e) => sortTable(column);
+  element.onkeydown = (e) => {
+    if (e.key == 'Enter' || e.key == ' ') {
+      sortTable(column);
+      e.preventDefault();
+    }
+  };
+}
+
+function onLoad() {
+  addHandlers(document.getElementById('nameColumnHeader'), 0);
+  addHandlers(document.getElementById('sizeColumnHeader'), 1);
+  addHandlers(document.getElementById('dateColumnHeader'), 2);
+}
+
+window.addEventListener('DOMContentLoaded', onLoad);
+</script>
+
+<style>
+
+  h1 {
+    border-bottom: 1px solid #c0c0c0;
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+    white-space: nowrap;
+  }
+
+  table {
+    border-collapse: collapse;
+  }
+
+  th {
+    cursor: pointer;
+  }
+
+  td.detailsColumn {
+    padding-inline-start: 2em;
+    text-align: end;
+    white-space: nowrap;
+  }
+
+  a.icon {
+    padding-inline-start: 1.5em;
+    text-decoration: none;
+    user-select: auto;
+  }
+
+  a.icon:hover {
+    text-decoration: underline;
+  }
+
+  a.file {
+    background : url("file.png") left top no-repeat;
+  }
+
+  a.dir {
+    background : url("folder.png") left top no-repeat;
+  }
+
+  a.up {
+    background : url("up.png") left top no-repeat;
+  }
+
+  html[dir=rtl] a {
+    background-position-x: right;
+  }
+
+  #parentDirLinkBox {
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+  }
+</style>
+
+<title id="title"></title>
+
+</head>
+
+<body>
+
+<h1 id="header">Index of LOCATION</h1>
+
+
+<table>
+  <thead>
+    <tr class="header" id="theader">
+      <th id="nameColumnHeader" tabindex=0 role="button">Name</th>
+      <th id="sizeColumnHeader" class="detailsColumn" tabindex=0 role="button">
+        Size
+      </th>
+      <th id="dateColumnHeader" class="detailsColumn" tabindex=0 role="button">
+        Date modified
+      </th>
+    </tr>
+  </thead>
+  <tbody id="tbody">
+  </tbody>
+</table>
+
+</body>
+
+</html>
+
+<script>
+function customRow(name, url, isdir, size, size_string, date_modified, date_modified_string) {
+  // Skip invalid entries
+  if (name == "." || name == "..") return;
+
+  // If it's a folder (isdir == 1), build a path to the N64 file inside it
+  if (isdir === 1 || isdir === "1") {
+    const nestedUrl = `${url}/${name}.zip`; // Build N64 file path
+    addRow(name, nestedUrl, 0, size, size_string, date_modified, date_modified_string);
+  } else {
+    // Already a file, just use as-is
+    addRow(name, url, 0, size, size_string, date_modified, date_modified_string);
+  }
+}
+</script>
+
+
+<script>// Copyright 2012 The Chromium Authors
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+"use strict";var loadTimeData;class LoadTimeData{constructor(){this.data_=null}set data(value){expect(!this.data_,"Re-setting data.");this.data_=value}valueExists(id){return id in this.data_}getValue(id){expect(this.data_,"No data. Did you remember to include strings.js?");const value=this.data_[id];expect(typeof value!=="undefined","Could not find value for "+id);return value}getString(id){const value=this.getValue(id);expectIsType(id,value,"string");return value}getStringF(id,var_args){const value=this.getString(id);if(!value){return""}const args=Array.prototype.slice.call(arguments);args[0]=value;return this.substituteString.apply(this,args)}substituteString(label,var_args){const varArgs=arguments;return label.replace(/\$(.|$|\n)/g,(function(m){expect(m.match(/\$[$1-9]/),"Unescaped $ found in localized string.");return m==="$$"?"$":varArgs[m[1]]}))}getBoolean(id){const value=this.getValue(id);expectIsType(id,value,"boolean");return value}getInteger(id){const value=this.getValue(id);expectIsType(id,value,"number");expect(value===Math.floor(value),"Number isn't integer: "+value);return value}overrideValues(replacements){expect(typeof replacements==="object","Replacements must be a dictionary object.");for(const key in replacements){this.data_[key]=replacements[key]}}}function expect(condition,message){if(!condition){throw new Error("Unexpected condition on "+document.location.href+": "+message)}}function expectIsType(id,value,type){expect(typeof value===type,"["+value+"] ("+id+") is not a "+type)}expect(!loadTimeData,"should only include this file once");loadTimeData=new LoadTimeData;window.loadTimeData=loadTimeData;console.warn("crbug/1173575, non-JS module files deprecated.");</script><script>loadTimeData.data = {"header":"Index of LOCATION","headerDateModified":"Date modified","headerName":"Name","headerSize":"Size","language":"en","parentDirText":"[parent directory]","textdirection":"ltr"};</script><script>start("\\ROMS\\N64\\");</script>
+<script>onHasParentDirectory();</script>
+<script>customRow("Diddy Kong Racing (Europe) (En,Fr,De) (Rev 1).zip","Diddy%20Kong%20Racing%20(Europe)%20(En,Fr,De)%20(Rev%201).zip",0,10210017,"9.7 MB",1757609011,"11/09/2025, 17:43:31");</script>
+<script>customRow("Donkey Kong 64 (Europe) (En,Fr,De,Es).zip","Donkey%20Kong%2064%20(Europe)%20(En,Fr,De,Es).zip",0,27549870,"26.3 MB",1757609023,"11/09/2025, 17:43:43");</script>
+<script>customRow("GoldenEye 007 (Europe).zip","GoldenEye%20007%20(Europe).zip",0,10695583,"10.2 MB",1757609030,"11/09/2025, 17:43:50");</script>
+<script>customRow("Legend of Zelda, The - Ocarina of Time (Europe) (En,Fr,De) (Rev 1).zip","Legend%20of%20Zelda,%20The%20-%20Ocarina%20of%20Time%20(Europe)%20(En,Fr,De)%20(Rev%201).zip",0,26115009,"24.9 MB",1757609039,"11/09/2025, 17:43:59");</script>
+<script>customRow("Mario Golf (Europe).zip","Mario%20Golf%20(Europe).zip",0,17077555,"16.3 MB",1757609043,"11/09/2025, 17:44:03");</script>
+<script>customRow("Mario Kart 64 (Europe) (Rev 1).zip","Mario%20Kart%2064%20(Europe)%20(Rev%201).zip",0,8770594,"8.4 MB",1757609048,"11/09/2025, 17:44:08");</script>
+<script>customRow("Mario Party (Europe) (En,Fr,De).zip","Mario%20Party%20(Europe)%20(En,Fr,De).zip",0,21379737,"20.4 MB",1757609057,"11/09/2025, 17:44:17");</script>
+<script>customRow("Mario Party 2 (Europe) (En,Fr,De,Es,It).zip","Mario%20Party%202%20(Europe)%20(En,Fr,De,Es,It).zip",0,24915013,"23.8 MB",1757609065,"11/09/2025, 17:44:25");</script>
+<script>customRow("Mario Party 3 (Europe) (En,Fr,De,Es).zip","Mario%20Party%203%20(Europe)%20(En,Fr,De,Es).zip",0,25096898,"23.9 MB",1757609070,"11/09/2025, 17:44:30");</script>
+<script>customRow("Mario Tennis (Europe).zip","Mario%20Tennis%20(Europe).zip",0,14705478,"14.0 MB",1757609071,"11/09/2025, 17:44:31");</script>
+<script>customRow("Mortal Kombat 4 (Europe).zip","Mortal%20Kombat%204%20(Europe).zip",0,13608618,"13.0 MB",1757609078,"11/09/2025, 17:44:38");</script>
+<script>customRow("Paper Mario (Europe) (En,Fr,De,Es).zip","Paper%20Mario%20(Europe)%20(En,Fr,De,Es).zip",0,22978864,"21.9 MB",1757609082,"11/09/2025, 17:44:42");</script>
+<script>customRow("Super Mario 64 (Europe) (En,Fr,De).zip","Super%20Mario%2064%20(Europe)%20(En,Fr,De).zip",0,6142493,"5.9 MB",1757609086,"11/09/2025, 17:44:46");</script>
+<script>customRow("Super Smash Bros. (Europe) (En,Fr,De).zip","Super%20Smash%20Bros.%20(Europe)%20(En,Fr,De).zip",0,15889403,"15.2 MB",1757609091,"11/09/2025, 17:44:51");</script>
+<script>customRow("Tony Hawk's Pro Skater 2 (Europe).zip","Tony%20Hawk's%20Pro%20Skater%202%20(Europe).zip",0,15319113,"14.6 MB",1757609097,"11/09/2025, 17:44:57");</script>
