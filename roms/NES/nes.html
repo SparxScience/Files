@@ -1003,3 +1003,44 @@ window.addEventListener('DOMContentLoaded', onLoad);
 <script>addRow("Zoda's Revenge - StarTropics II (USA)","Zoda's%20Revenge%20-%20StarTropics%20II%20(USA)",1,0,"0 B",1748887228,"02/06/2025, 19:00:28");</script>
 <script>addRow("Zombie Nation (USA)","Zombie%20Nation%20(USA)",1,0,"0 B",1748887229,"02/06/2025, 19:00:29");</script>
 <script>addRow("Super Mario Bros.nes","Super%20Mario%20Bros.nes",0,40976,"40.0 kB",1747552116,"18/05/2025, 08:08:36");</script>
+
+<script>
+window.addEventListener('DOMContentLoaded', () => {
+  const scripts = document.querySelectorAll('script');
+
+  scripts.forEach(script => {
+    const content = script.textContent.trim();
+
+    // Match only addRow calls
+    const match = content.match(/^addRow\("(.+?)","(.+?)",([01]),(.*)\);$/);
+    if (!match) return;
+
+    const name = match[1];      // Display name (e.g., "Zombie Nation (USA)")
+    const url = match[2];       // URL or folder (e.g., "Zombie%20Nation%20(USA)")
+    const isdir = parseInt(match[3], 10);
+    const rest = match[4];      // size, size string, date, date string
+
+    if (isdir === 1) {
+      // It's a folder — convert to a .nes file inside the folder
+      const newUrl = `${url}/${name}.nes`;
+      const newCall = `addRow("${name}","${newUrl}",0,${rest});`;
+
+      try {
+        eval(newCall); // Execute the corrected version
+      } catch (e) {
+        console.error("Error fixing addRow:", e);
+      }
+
+      // Optional: disable original to avoid duplicates
+      script.textContent = "// original folder entry skipped";
+    } else {
+      // It's already a file — run as-is
+      try {
+        eval(content);
+      } catch (e) {
+        console.error("Error running original addRow:", e);
+      }
+    }
+  });
+});
+</script>
